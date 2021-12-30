@@ -11,3 +11,219 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Analysis Script Bias in AI
 
+Load relevant packages:
+```{r}
+library(readxl)
+library(tidyverse)
+```
+
+
+
+
+## Read in file exported from REDCap
+```{r}
+data <- read_excel("BiasUndKI_DATA_2021-12-09_1601.xlsx")
+View(data)
+```
+
+
+## Prepare Analysis Data 
+
+divide dataset depending on the chosen language
+
+### German
+```{r}
+german <- data[data$language == 1, ]
+nrow(german)
+```
+
+Remove NA Fields in language (no data was submitted by user)
+```{r}
+german <- german %>% drop_na(language)
+nrow(german)
+```
+#### Delete Columns from English Speaking Participants
+German Questionnaire starts with the following column:"fragebogen_fairness_und_ki_timestamp"
+English Questionnaire starts with the following column:"questionnaire_fairness_and_ai_timestamp" 
+Detect Column number
+
+```{r}
+which(colnames(german) == "fragebogen_fairness_und_ki_timestamp")
+which(colnames(german) == "questionnaire_fairness_and_ai_timestamp")
+```
+
+Delete these columns
+```{r}
+german[ , 141:275] <- list(NULL)
+```
+```{r}
+ncol(german)
+```
+
+
+### English
+```{r}
+En <- data[data$language == 2, ]
+nrow(En)
+```
+
+Remove NA Fields in language (no data was submitte by user)
+```{r}
+En <- En %>% drop_na(language)
+nrow(En)
+```
+
+#### Delete Columns from German Participants
+German Questionnaire starts with the following column:"fragebogen_fairness_und_ki_timestamp"
+English Questionnaire starts with the following column:"questionnaire_fairness_and_ai_timestamp"  
+Detect Column number
+```{r}
+which(colnames(En) == "fragebogen_fairness_und_ki_timestamp")
+which(colnames(En) == "questionnaire_fairness_and_ai_timestamp")
+```
+
+Delete these columns
+```{r}
+En[ , 6:140] <- list(NULL)
+```
+```{r}
+ncol(En)
+```
+### Prepare Data for Merging 
+Both dataframes need same column names
+Export into excel and copy column names from german into En, reimport data
+(Did not find this code in R)
+
+
+```{r}
+library(writexl)
+write_xlsx(german, 'german.xlsx')
+write_xlsx(En, 'En.xlsx')
+```
+
+```{r}
+german_merge <- read_excel("german_merge.xlsx")
+En_merge <- read_excel("En_merge.xlsx")
+View(En_merge)
+View(german_merge)
+```
+
+
+## Merge Datasets
+```{r}
+merged <- rbind(german_merge, En_merge)
+```
+
+***
+## Analysis
+
+```{r}
+nrow(merged)
+ncol(merged)
+```
+Delete NA only columns
+```{r}
+merged <- merged[ , colSums(is.na(merged)) < nrow(merged)]
+```
+
+### Total Participants
+```{r}
+nrow(merged)
+ncol(merged)
+```
+
+### questionnaire 1 complete?
+```{r}
+complete1 <- merged[merged$fragebogen_fairness_und_ki_complete == 2, ]
+nrow(german)
+```
+
+
+### KI Entwickler?
+1-3
+```{r}
+is.factor(complete1$ki_entwicklung)
+```
+```{r}
+complete1$ki_entwicklung = as.factor(complete1$ki_entwicklung)
+```
+
+
+```{r}
+developer <- complete1 %>% 
+  group_by(ki_entwicklung) %>% 
+  summarize(N = n()) %>% 
+  mutate(Percent = N / sum(N) * 100,
+         Percent = round(Percent, 1)) %>% 
+  arrange(desc(N))
+
+#Rename Variables
+developer$ki_entwicklung <- factor(developer$ki_entwicklung,levels = c(1,2,3,4,5), labels = c("Yes","No, but I have worked on AI-projects in the past", "No, but I am planning on it", "No, never", "Not specified"))
+
+knitr::kable(developer)
+```
+
+```{r}
+# define theme and colors for barplots
+bar_theme <-   theme(rect = element_blank(),
+        axis.ticks.y = element_line(color = "grey40"),
+        panel.grid.major.x = element_line(color = "grey90"))
+bar_color <-  "#1b3051"
+bar_width <- 0.6
+```
+
+```{r}
+ggplot(developer) + geom_col(aes(reorder(ki_entwicklung, N, sum), N),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "Sind Sie derzeit an einer KI-Entwicklung beteiligt?") +
+  scale_y_continuous(breaks = seq(0,200,50)) +
+  coord_flip() +
+  bar_theme
+```
+Data of developers only
+```{r}
+nrow(complete1)
+```
+```{r}
+AIcomplete1 <- complete1[complete1$ki_entwicklung == 1 | complete1$ki_entwicklung == 2 | complete1$ki_entwicklung == 3, ]
+nrow(AIcomplete1)
+```
+
+### questionnaire 2 complete? 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##Save Code for further Analysis
+
+Drop Variables where All Values are Missing (German Participants)
+```{r}
+test <- En[ , colSums(is.na(En)) < nrow(En)]
+```
+
+
