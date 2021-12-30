@@ -1,0 +1,13 @@
+---
+title: "Analysis Script"
+author: "CV_CS"
+date: "30 12 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Analysis Script Bias in AI
+
