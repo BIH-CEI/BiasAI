@@ -1,0 +1,119 @@
+---
+title: "Data Preparation from RedCap"
+author: "Vorisek_CN"
+date: "16 1 2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Prepare Data from RedCap for Analysis
+## Load relevant packages:
+```{r}
+library(readxl)
+library(tidyverse)
+library(writexl)
+library(knitr)
+```
+
+## Read in file exported from REDCap
+```{r}
+data <- read_excel("BiasUndKI_DATA_2021-12-09_1601.xlsx")
+View(data)
+```
+
+## Divide dataset depending on the chosen language
+*otherwise double entry due to longitudinal data*
+
+### German Speaking Participants
+```{r}
+german <- data[data$language == 1, ]
+nrow(german)
+```
+*Remove NA Fields in language (no data was submitted by user)*
+```{r}
+german <- german %>% drop_na(language)
+nrow(german)
+```
+#### Delete Columns from English Speaking Participants
+*German Questionnaire starts with the following column:"fragebogen_fairness_und_ki_timestamp"*
+*English Questionnaire starts with the following column:"questionnaire_fairness_and_ai_timestamp"* 
+**Detect Column number**
+```{r}
+which(colnames(german) == "fragebogen_fairness_und_ki_timestamp")
+which(colnames(german) == "questionnaire_fairness_and_ai_timestamp")
+```
+**Delete these columns**
+```{r}
+german[ , 141:275] <- list(NULL)
+ncol(german)
+```
+
+### English Speaking Participants
+```{r}
+En <- data[data$language == 2, ]
+nrow(En)
+```
+*Remove NA Fields in language (no data was submitted by user)*
+```{r}
+En <- En %>% drop_na(language)
+nrow(En)
+```
+#### Delete Columns from English Speaking Participants
+*German Questionnaire starts with the following column:"fragebogen_fairness_und_ki_timestamp"*
+*English Questionnaire starts with the following column:"questionnaire_fairness_and_ai_timestamp"* 
+**Detect Column number**
+```{r}
+which(colnames(En) == "fragebogen_fairness_und_ki_timestamp")
+which(colnames(En) == "questionnaire_fairness_and_ai_timestamp")
+```
+**Delete these columns**
+```{r}
+En[ , 6:140] <- list(NULL)
+ncol(En)
+```
+
+
+# Merging the German and English Datasets
+## Prepare Data for Merging 
+*Both dataframes need same column names*
+```{r}
+write_xlsx(german, 'german.xlsx')
+write_xlsx(En, 'En.xlsx')
+```
+
+**Export into excel and copy column names from german into En, reimport data**
+*(Did not find this code in R)*
+```{r}
+german_merge <- read_excel("german_merge.xlsx")
+En_merge <- read_excel("En_merge.xlsx")
+View(En_merge)
+View(german_merge)
+```
+
+## Merge Datasets
+```{r}
+merged <- rbind(german_merge, En_merge)
+```
+
+
+# Prepare Analysis
+## Identify relevant data
+*Do columns add up?*
+```{r}
+nrow(En)
+nrow(german)
+nrow(merged)
+ncol(merged)
+```
+*Delete NA only columns*
+```{r}
+merged <- merged[ , colSums(is.na(merged)) < nrow(merged)]
+```
+
+# Write File for Analysis
+```{r}
+write_xlsx(merged, 'merged.xlsx')
+```

@@ -1,143 +1,59 @@
 ---
-title: "Analysis Script"
-author: "CV_CS"
+title: "Analysis Script - Bias in AI"
+author: "Vorisek_CN"
 date: "30 12 2021"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Analysis Script Bias in AI
-
-Load relevant packages:
+*Load relevant libraries*
 ```{r}
 library(readxl)
-library(tidyverse)
 ```
 
-
-
-
-## Read in file exported from REDCap
+## Bar themes
 ```{r}
-data <- read_excel("BiasUndKI_DATA_2021-12-09_1601.xlsx")
-View(data)
+# define theme and colors for barplots
+bar_theme <-   theme(rect = element_blank(),
+        axis.ticks.y = element_line(color = "grey40"),
+        panel.grid.major.x = element_line(color = "grey90"))
+bar_color <-  "#1b3051"
+bar_width <- 0.6
 ```
 
-
-## Prepare Analysis Data 
-
-divide dataset depending on the chosen language
-
-### German
+*Read in file created in "Data_Preparation.Rmd"*
 ```{r}
-german <- data[data$language == 1, ]
-nrow(german)
-```
-
-Remove NA Fields in language (no data was submitted by user)
-```{r}
-german <- german %>% drop_na(language)
-nrow(german)
-```
-#### Delete Columns from English Speaking Participants
-German Questionnaire starts with the following column:"fragebogen_fairness_und_ki_timestamp"
-English Questionnaire starts with the following column:"questionnaire_fairness_and_ai_timestamp" 
-Detect Column number
-
-```{r}
-which(colnames(german) == "fragebogen_fairness_und_ki_timestamp")
-which(colnames(german) == "questionnaire_fairness_and_ai_timestamp")
-```
-
-Delete these columns
-```{r}
-german[ , 141:275] <- list(NULL)
-```
-```{r}
-ncol(german)
+merged <- read_excel("merged.xlsx")
+View(merged)
 ```
 
 
-### English
-```{r}
-En <- data[data$language == 2, ]
-nrow(En)
-```
-
-Remove NA Fields in language (no data was submitte by user)
-```{r}
-En <- En %>% drop_na(language)
-nrow(En)
-```
-
-#### Delete Columns from German Participants
-German Questionnaire starts with the following column:"fragebogen_fairness_und_ki_timestamp"
-English Questionnaire starts with the following column:"questionnaire_fairness_and_ai_timestamp"  
-Detect Column number
-```{r}
-which(colnames(En) == "fragebogen_fairness_und_ki_timestamp")
-which(colnames(En) == "questionnaire_fairness_and_ai_timestamp")
-```
-
-Delete these columns
-```{r}
-En[ , 6:140] <- list(NULL)
-```
-```{r}
-ncol(En)
-```
-### Prepare Data for Merging 
-Both dataframes need same column names
-Export into excel and copy column names from german into En, reimport data
-(Did not find this code in R)
 
 
-```{r}
-library(writexl)
-write_xlsx(german, 'german.xlsx')
-write_xlsx(En, 'En.xlsx')
-```
 
-```{r}
-german_merge <- read_excel("german_merge.xlsx")
-En_merge <- read_excel("En_merge.xlsx")
-View(En_merge)
-View(german_merge)
-```
+### questionnaire 1 complete/ response rate
 
-
-## Merge Datasets
-```{r}
-merged <- rbind(german_merge, En_merge)
-```
-
-***
-## Analysis
-
-```{r}
-nrow(merged)
-ncol(merged)
-```
-Delete NA only columns
-```{r}
-merged <- merged[ , colSums(is.na(merged)) < nrow(merged)]
-```
-
-### Total Participants
-```{r}
-nrow(merged)
-ncol(merged)
-```
-
-### questionnaire 1 complete?
 ```{r}
 complete1 <- merged[merged$fragebogen_fairness_und_ki_complete == 2, ]
-nrow(german)
+nrow(complete1)
+```
+```{r}
+complete2 <- complete1[complete1$fragebogen_fairness_und_ki_2_complete == 2, ]
+nrow(complete2)
+```
+```{r}
+202/441*100
 ```
 
+```{r}
+441/638*100
+```
 
 ### KI Entwickler?
 1-3
@@ -147,7 +63,6 @@ is.factor(complete1$ki_entwicklung)
 ```{r}
 complete1$ki_entwicklung = as.factor(complete1$ki_entwicklung)
 ```
-
 
 ```{r}
 developer <- complete1 %>% 
@@ -164,15 +79,6 @@ knitr::kable(developer)
 ```
 
 ```{r}
-# define theme and colors for barplots
-bar_theme <-   theme(rect = element_blank(),
-        axis.ticks.y = element_line(color = "grey40"),
-        panel.grid.major.x = element_line(color = "grey90"))
-bar_color <-  "#1b3051"
-bar_width <- 0.6
-```
-
-```{r}
 ggplot(developer) + geom_col(aes(reorder(ki_entwicklung, N, sum), N),
                               fill = bar_color,
                               width = bar_width) +
@@ -181,7 +87,7 @@ ggplot(developer) + geom_col(aes(reorder(ki_entwicklung, N, sum), N),
   coord_flip() +
   bar_theme
 ```
-Data of developers only
+# Analysis - Data of developers only
 ```{r}
 nrow(complete1)
 ```
@@ -189,21 +95,670 @@ nrow(complete1)
 AIcomplete1 <- complete1[complete1$ki_entwicklung == 1 | complete1$ki_entwicklung == 2 | complete1$ki_entwicklung == 3, ]
 nrow(AIcomplete1)
 ```
-
-### questionnaire 2 complete? 
-
-
-
-
+```{r}
+AIcomplete2 <- complete2[complete2$ki_entwicklung == 1 | complete2$ki_entwicklung == 2 | complete2$ki_entwicklung == 3, ]
+nrow(AIcomplete2)
+```
 
 
+## Percentage of AI developers
+```{r}
+334/441*100
+```
+
+```{r}
+AIcomplete2 <- AIcomplete1[AIcomplete1$fragebogen_fairness_und_ki_2_complete == 2, ]
+nrow(AIcomplete2)
+```
+
+***
+
+# Analysis 1st sheet, AI Developers only
+
+**Prepare Data**
+```{r}
+AIcomplete1$arbeitsland = as.factor(AIcomplete1$arbeitsland)
+AIcomplete1$geschlecht = as.factor(AIcomplete1$geschlecht)
+AIcomplete1$sektor = as.factor(AIcomplete1$sektor)
+AIcomplete1$quelle = as.factor(AIcomplete1$quelle)
+AIcomplete1$alter = as.numeric(AIcomplete1$alter)
+```
+
+## How did this questionnaire reach you?
+```{r}
+quelle <- AIcomplete1 %>% 
+  group_by(quelle) %>% 
+  summarize(N = n()) %>% 
+  mutate(Percent = N / sum(N) * 100,
+         Percent = round(Percent, 1)) %>% 
+  arrange(desc(N))
+
+knitr::kable(quelle)
+```
+
+```{r}
+ggplot(quelle) + geom_col(aes(reorder(quelle, N, sum), N),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "How did this questionnaire reach you?") +
+  scale_y_continuous(breaks = seq(0,200,50)) +
+  coord_flip() +
+  bar_theme
+```
+
+## Which country do you work in?
+```{r}
+country <- AIcomplete1 %>% 
+  group_by(arbeitsland) %>% 
+  summarize(N = n()) %>% 
+  mutate(Percent = N / sum(N) * 100,
+         Percent = round(Percent, 1)) %>% 
+  arrange(desc(N))
+
+knitr::kable(country)
+```
+
+```{r}
+ggplot(country) + geom_col(aes(reorder(arbeitsland, N, sum), N),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "Which country do you work in?") +
+  scale_y_continuous(breaks = seq(0,200,50)) +
+  coord_flip() +
+  bar_theme
+```
+
+
+## What is your gender?
+```{r}
+gender <- AIcomplete1 %>% 
+  group_by(geschlecht) %>% 
+  summarize(N = n()) %>% 
+  mutate(Percent = N / sum(N) * 100,
+         Percent = round(Percent, 1)) %>% 
+  arrange(desc(N))
+
+knitr::kable(gender)
+```
+
+```{r}
+ggplot(gender) + geom_col(aes(reorder(geschlecht, N, sum), N),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "What is your gender?") +
+  scale_y_continuous(breaks = seq(0,200,50)) +
+  coord_flip() +
+  bar_theme
+```
+
+
+## In which area do you work in?
+```{r}
+section <- AIcomplete1 %>% 
+  group_by(sektor) %>% 
+  summarize(N = n()) %>% 
+  mutate(Percent = N / sum(N) * 100,
+         Percent = round(Percent, 1)) %>% 
+  arrange(desc(N))
+
+knitr::kable(section)
+```
+
+```{r}
+ggplot(section) + geom_col(aes(reorder(sektor, N, sum), N),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "In which area do you work in?") +
+  scale_y_continuous(breaks = seq(0,200,50)) +
+  coord_flip() +
+  bar_theme
+```
+
+
+## Summary Table
+```{r}
+library(arsenal)
+library(data.table)
+library(ggplot2)
+library(dplyr)
+```
+
+
+```{r}
+table_one <- tableby(~geschlecht + sektor + alter + arbeitsland + quelle, data = AIcomplete1) 
+summary(table_one)
+```
+
+
+
+#Analysis 2nd sheet, AI Developers only
+
+**one choice only**
+
+*Prepare Data*
+```{r}
+AIcomplete1$bias_ki = as.factor(AIcomplete1$bias_ki)
+AIcomplete1$nat_internat_daten = as.factor(AIcomplete1$nat_internat_daten)
+AIcomplete1$standard_daten = as.factor(AIcomplete1$standard_daten)
+AIcomplete1$fairness_ki = as.factor(AIcomplete1$fairness_ki)
+AIcomplete1$fragebogen_fairness_und_ki_2_complete = as.factor(AIcomplete1$fragebogen_fairness_und_ki_2_complete)
+```
+
+```{r}
+table_two <- tableby(~bias_ki + nat_internat_daten + standard_daten + fairness_ki + fragebogen_fairness_und_ki_2_complete, data = AIcomplete1) 
+summary(table_two)
+```
+
+
+***
+
+** multiple choice**
+
+## Phase KI?
+### Prepare Data**
+
+*select columns*
+```{r}
+which(colnames(AIcomplete1) == "ki_entwicklungsphase___1")
+which(colnames(AIcomplete1) == "ki_entwicklungsphase___8")
+```
+*create dataset*
+```{r}
+kiphase<-AIcomplete1 %>% select(1, 19:26)
+view(kiphase)
+```
+
+*identify participants which did not answer this question*
+```{r}
+kiphase$nonresp <- kiphase$ki_entwicklungsphase___1 + kiphase$ki_entwicklungsphase___2 + kiphase$ki_entwicklungsphase___3 + kiphase$ki_entwicklungsphase___4 + kiphase$ki_entwicklungsphase___5 + kiphase$ki_entwicklungsphase___6 + kiphase$ki_entwicklungsphase___7 + kiphase$ki_entwicklungsphase___8
+```
+
+*drop non resp*
+```{r}
+nrow(kiphase)
+kiphase <- kiphase[kiphase$nonresp != 0, ]
+nrow(kiphase)
+```
+
+*drop non resp column*
+```{r}
+kiphase <- subset(kiphase, select = -c(nonresp, id))
+```
+
+*as.numeric for frequency calculation*
+```{r}
+kiphase$ki_entwicklungsphase___1 = as.numeric(kiphase$ki_entwicklungsphase___1)
+kiphase$ki_entwicklungsphase___2 = as.numeric(kiphase$ki_entwicklungsphase___2)
+kiphase$ki_entwicklungsphase___3 = as.numeric(kiphase$ki_entwicklungsphase___3)
+kiphase$ki_entwicklungsphase___4 = as.numeric(kiphase$ki_entwicklungsphase___4)
+kiphase$ki_entwicklungsphase___5 = as.numeric(kiphase$ki_entwicklungsphase___5)
+kiphase$ki_entwicklungsphase___6 = as.numeric(kiphase$ki_entwicklungsphase___6)
+kiphase$ki_entwicklungsphase___7 = as.numeric(kiphase$ki_entwicklungsphase___7)
+kiphase$ki_entwicklungsphase___8 = as.numeric(kiphase$ki_entwicklungsphase___8)
+```
+
+### Multi-response analysis
+
+*Pct.of.cases is the percentage of respondents who selected that particular option. You'll notice that these don't add up to 100% because people could choose more than one option.Pct.of.resp. is the percentage of responses (so not like I said in the video respondents, but responses).  These do add up to 100%. *
+
+```{r}
+
+kiphase_analysis <-data.frame(Freq = colSums(kiphase),
+           Pct.of.Resp = (colSums(kiphase)/sum(kiphase))*100,
+           Pct.of.Cases = (colSums(kiphase)/nrow(kiphase))*100)
+knitr::kable(kiphase_analysis)
+```
+
+You can use the las graphics parameter. However, if you do that, the names will run off the end of the window, so you need to change the margins. For example:
+```{r}
+barplot(kiphase_analysis[[3]]
+        ,horiz=TRUE
+        ,names.arg=row.names(kiphase_analysis)
+        ,las=1
+        ,main="At what stage are you or have you been developing AI-projects?"
+        ,xlab="percentage of responses")
+```
+
+### Identify Incomplete IDs
+## Phase KI?
+
+**Prepare Data**
+
+*select columns*
+```{r}
+which(colnames(AIcomplete2) == "ki_entwicklungsphase___1")
+which(colnames(AIcomplete2) == "ki_entwicklungsphase___8")
+```
+*create dataset*
+```{r}
+kiphase2<-AIcomplete2 %>% select(1, 19:26)
+view(kiphase2)
+```
+
+**identify incomplete IDs!!!**
+```{r}
+kiphase2$nonresp <- kiphase2$ki_entwicklungsphase___1 + kiphase2$ki_entwicklungsphase___2 + kiphase2$ki_entwicklungsphase___3 + kiphase2$ki_entwicklungsphase___4 + kiphase2$ki_entwicklungsphase___5 + kiphase2$ki_entwicklungsphase___6 + kiphase2$ki_entwicklungsphase___7 + kiphase2$ki_entwicklungsphase___8
+```
+
+```{r}
+incomplete2 <- kiphase2[kiphase2$nonresp == 0, ]
+incomplete2$id
+```
+*drop non resp*
+```{r}
+nrow(kiphase2)
+kiphase2 <- kiphase2[kiphase2$nonresp != 0, ]
+nrow(kiphase2)
+```
+
+**check the records of those 5 non complete answer**
+Only 625 incomplete
+
+
+
+
+## medical specialty
+### Prepare Data
+*select columns*
+```{r}
+which(colnames(AIcomplete1) == "med_fachbereich___1")
+which(colnames(AIcomplete1) == "med_fachbereich___37")
+```
+*create dataset*
+```{r}
+specialty<-AIcomplete1 %>% select(1, 28:64)
+view(specialty)
+ncol(specialty)
+```
+
+*identify participants which did not answer this question*
+
+```{r}
+specialty <- specialty %>%
+    mutate(nonresp = select(., 2:38) %>% rowSums(na.rm = TRUE))
+```
+
+*drop non resp*
+```{r}
+nrow(specialty)
+specialty <- specialty[specialty$nonresp != 0, ]
+nrow(specialty)
+```
+
+*drop non resp and ID column*
+```{r}
+specialty <- subset(specialty, select = -c(nonresp, id))
+```
+
+### Multi-response analysis
+
+*Pct.of.cases is the percentage of respondents who selected that particular option. You'll notice that these don't add up to 100% because people could choose more than one option.Pct.of.resp. is the percentage of responses (so not like I said in the video respondents, but responses).  These do add up to 100%. *
+
+```{r}
+
+specialty_analysis <-data.frame(Freq = colSums(specialty),
+           Pct.of.Resp = (colSums(specialty)/sum(specialty))*100,
+           Pct.of.Cases = (colSums(specialty)/nrow(specialty))*100)
+knitr::kable(specialty_analysis)
+```
+
+You can use the las graphics parameter. However, if you do that, the names will run off the end of the window, so you need to change the margins. For example:
+```{r}
+barplot(specialty_analysis[[3]]
+        ,horiz=TRUE
+        ,names.arg=row.names(specialty_analysis)
+        ,las=1
+        ,main="In which medical specialty are you developing AI solutions?"
+        ,xlab="percentage of responses")
+```
+
+
+### Identify Incomplete IDs
+*select columns*
+```{r}
+which(colnames(AIcomplete2) == "med_fachbereich___1")
+which(colnames(AIcomplete2) == "med_fachbereich___37")
+```
+*create dataset*
+```{r}
+specialty2<-AIcomplete2 %>% select(1, 28:64)
+view(specialty2)
+ncol(specialty2)
+```
+
+**identify participants which did not answer this question but were marked as complete!!!**
+```{r}
+specialty2 <- specialty2 %>%
+    mutate(nonresp = select(., 2:38) %>% rowSums(na.rm = TRUE))
+incomplete3 <- specialty2[specialty2$nonresp == 0, ]
+incomplete3$id
+```
+
+
+
+
+## In which of the following areas of AI are you developing?
+### Prepare Data
+*select columns*
+```{r}
+which(colnames(AIcomplete1) == "ki_art_1___1")
+which(colnames(AIcomplete1) == "ki_art_1___4")
+```
+*create dataset*
+```{r}
+areas<-AIcomplete1 %>% select(1, 66:69)
+view(areas)
+ncol(areas)
+```
+
+*identify participants which did not answer this question*
+```{r}
+areas <- areas %>%
+    mutate(nonresp = select(., 2:5) %>% rowSums(na.rm = TRUE))
+```
+
+*drop non resp*
+```{r}
+nrow(areas)
+areas <- areas[areas$nonresp != 0, ]
+nrow(areas)
+```
+
+*drop non resp and ID column*
+```{r}
+areas <- subset(areas, select = -c(nonresp, id))
+```
+
+### Multi-response analysis
+
+*Pct.of.cases is the percentage of respondents who selected that particular option. You'll notice that these don't add up to 100% because people could choose more than one option.Pct.of.resp. is the percentage of responses (so not like I said in the video respondents, but responses).  These do add up to 100%. *
+
+```{r}
+
+areas_analysis <-data.frame(Freq = colSums(areas),
+           Pct.of.Resp = (colSums(areas)/sum(specialty))*100,
+           Pct.of.Cases = (colSums(areas)/nrow(areas))*100)
+knitr::kable(areas_analysis)
+```
+
+You can use the las graphics parameter. However, if you do that, the names will run off the end of the window, so you need to change the margins. For example:
+```{r}
+barplot(areas_analysis[[3]]
+        ,horiz=TRUE
+        ,names.arg=row.names(areas_analysis)
+        ,las=1
+        ,main="In which of the following areas of AI are you developing?"
+        ,xlab="percentage of responses")
+```
+
+
+### Identify Incomplete IDs
+*select columns*
+```{r}
+which(colnames(AIcomplete2) == "ki_art___1")
+which(colnames(AIcomplete2) == "ki_art___4")
+```
+*create dataset*
+```{r}
+areas2<-AIcomplete2 %>% select(1, 66:69)
+view(areas2)
+ncol(areas2)
+```
+
+**identify participants which did not answer this question but were marked as complete!!!**
+```{r}
+areas2 <- areas2 %>%
+    mutate(nonresp = select(., 2:5) %>% rowSums(na.rm = TRUE))
+incomplete4 <- areas2[areas2$nonresp == 0, ]
+incomplete4$id
+```
+
+## Please specify the type of Machine Learning (ML) you aredeveloping:
+
+## Please specify the type of Deep Learning you are developing:
 
 
 
 
 
+## In which of the following areas_2 of AI are you developing?
+### Prepare Data
+*select columns*
+```{r}
+which(colnames(AIcomplete1) == "ki_bereich___1")
+which(colnames(AIcomplete1) == "ki_bereich___7")
+```
+*create dataset*
+```{r}
+areas_2<-AIcomplete1 %>% select(1, 81:87)
+view(areas_2)
+ncol(areas_2)
+```
+
+*identify participants which did not answer this question*
+```{r}
+areas_2 <- areas_2 %>%
+    mutate(nonresp = select(., 2:8) %>% rowSums(na.rm = TRUE))
+view(areas_2)
+```
 
 
+*drop non resp*
+```{r}
+nrow(areas_2)
+areas_2 <- areas_2[areas_2$nonresp != 0, ]
+nrow(areas_2)
+```
+
+*drop non resp and ID column*
+```{r}
+areas_2 <- subset(areas_2, select = -c(nonresp, id))
+```
+
+### Multi-response analysis
+
+*Pct.of.cases is the percentage of respondents who selected that particular option. You'll notice that these don't add up to 100% because people could choose more than one option.Pct.of.resp. is the percentage of responses (so not like I said in the video respondents, but responses).  These do add up to 100%. *
+
+```{r}
+
+areas_2_analysis <-data.frame(Freq = colSums(areas_2),
+           Pct.of.Resp = (colSums(areas_2)/sum(specialty))*100,
+           Pct.of.Cases = (colSums(areas_2)/nrow(areas_2))*100)
+knitr::kable(areas_2_analysis)
+```
+
+You can use the las graphics parameter. However, if you do that, the names will run off the end of the window, so you need to change the margins. For example:
+```{r}
+barplot(areas_2_analysis[[3]]
+        ,horiz=TRUE
+        ,names.arg=row.names(areas_2_analysis)
+        ,las=1
+        ,main="In which of the following areas of AI are you developing?"
+        ,xlab="percentage of responses")
+```
+
+
+### Identify Incomplete IDs
+*select columns*
+```{r}
+which(colnames(AIcomplete2) == "ki_bereich___1")
+which(colnames(AIcomplete2) == "ki_bereich___7")
+```
+*create dataset*
+```{r}
+areas_2_2<-AIcomplete2 %>% select(1, 81:87)
+view(areas_2_2)
+ncol(areas_2_2)
+nrow(areas_2_2)
+```
+
+**identify participants which did not answer this question but were marked as complete!!!**
+```{r}
+areas_2_2 <- areas_2_2 %>%
+    mutate(nonresp = select(., 2:8) %>% rowSums(na.rm = TRUE))
+incomplete5 <- areas_2_2[areas_2_2$nonresp == 0, ]
+incomplete5$id
+```
+
+
+
+
+
+## Where do you think biases in AI can occur?
+### Prepare Data
+*select columns*
+```{r}
+which(colnames(AIcomplete1) == "bias_feld___1")
+which(colnames(AIcomplete1) == "bias_feld___6")
+```
+*create dataset*
+```{r}
+occur<-AIcomplete1 %>% select(1, 90:95)
+view(occur)
+ncol(occur)
+```
+
+*identify participants which did not answer this question*
+```{r}
+occur <- occur %>%
+    mutate(nonresp = select(., 2:7) %>% rowSums(na.rm = TRUE))
+```
+
+*drop non resp*
+```{r}
+nrow(occur)
+occur <- occur[occur$nonresp != 0, ]
+nrow(occur)
+```
+
+*drop non resp and ID column*
+```{r}
+occur <- subset(occur, select = -c(nonresp, id))
+```
+
+### Multi-response analysis
+
+*Pct.of.cases is the percentage of respondents who selected that particular option. You'll notice that these don't add up to 100% because people could choose more than one option.Pct.of.resp. is the percentage of responses (so not like I said in the video respondents, but responses).  These do add up to 100%. *
+
+```{r}
+
+occur_analysis <-data.frame(Freq = colSums(occur),
+           Pct.of.Resp = (colSums(occur)/sum(specialty))*100,
+           Pct.of.Cases = (colSums(occur)/nrow(occur))*100)
+knitr::kable(occur_analysis)
+```
+
+You can use the las graphics parameter. However, if you do that, the names will run off the end of the window, so you need to change the margins. For example:
+```{r}
+barplot(occur_analysis[[3]]
+        ,horiz=TRUE
+        ,names.arg=row.names(occur_analysis)
+        ,las=1
+        ,main="Where do you think biases in AI can occur?"
+        ,xlab="percentage of responses")
+```
+
+
+### Identify Incomplete IDs
+*select columns*
+```{r}
+which(colnames(AIcomplete2) == "bias_feld___1")
+which(colnames(AIcomplete2) == "bias_feld___6")
+```
+*create dataset*
+```{r}
+occur2<-AIcomplete2 %>% select(1,90:95)
+view(occur2)
+ncol(occur2)
+```
+
+**identify participants which did not answer this question but were marked as complete!!!**
+```{r}
+occur2 <- occur2 %>%
+    mutate(nonresp = select(., 2:7) %>% rowSums(na.rm = TRUE))
+incomplete6 <- occur2[occur2$nonresp == 0, ]
+incomplete6$id
+```
+
+
+
+
+
+## What data do you use to train AI algorithms?
+### Prepare Data
+*select columns*
+```{r}
+which(colnames(AIcomplete1) == "ki_trainingsdaten___1")
+which(colnames(AIcomplete1) == "ki_trainingsdaten___4")
+```
+*create dataset*
+```{r}
+train<-AIcomplete1 %>% select(1, 97:100)
+view(train)
+ncol(train)
+```
+
+*identify participants which did not answer this question*
+```{r}
+train <- train %>%
+    mutate(nonresp = select(., 2:5) %>% rowSums(na.rm = TRUE))
+```
+
+*drop non resp*
+```{r}
+nrow(train)
+train <- train[train$nonresp != 0, ]
+nrow(train)
+```
+
+*drop non resp and ID column*
+```{r}
+train <- subset(train, select = -c(nonresp, id))
+```
+
+### Multi-response analysis
+
+*Pct.of.cases is the percentage of respondents who selected that particular option. You'll notice that these don't add up to 100% because people could choose more than one option.Pct.of.resp. is the percentage of responses (so not like I said in the video respondents, but responses).  These do add up to 100%. *
+
+```{r}
+
+train_analysis <-data.frame(Freq = colSums(train),
+           Pct.of.Resp = (colSums(train)/sum(specialty))*100,
+           Pct.of.Cases = (colSums(train)/nrow(train))*100)
+knitr::kable(train_analysis)
+```
+
+You can use the las graphics parameter. However, if you do that, the names will run off the end of the window, so you need to change the margins. For example:
+```{r}
+barplot(train_analysis[[3]]
+        ,horiz=TRUE
+        ,names.arg=row.names(train_analysis)
+        ,las=1
+        ,main="What data do you use to train AI algorithms?"
+        ,xlab="percentage of responses")
+```
+
+
+### Identify Incomplete IDs
+*select columns*
+```{r}
+which(colnames(AIcomplete2) == "ki_trainingsdaten___1")
+which(colnames(AIcomplete2) == "ki_trainingsdaten___4")
+```
+*create dataset*
+```{r}
+train2<-AIcomplete2 %>% select(1, 97:100)
+view(train2)
+ncol(train2)
+```
+
+**identify participants which did not answer this question but were marked as complete!!!**
+```{r}
+train2 <- train2 %>%
+    mutate(nonresp = select(., 2:5) %>% rowSums(na.rm = TRUE))
+incomplete7 <- train2[train2$nonresp == 0, ]
+incomplete7$id
+```
 
 
 
@@ -220,10 +775,5 @@ nrow(AIcomplete1)
 
 
 ##Save Code for further Analysis
-
-Drop Variables where All Values are Missing (German Participants)
-```{r}
-test <- En[ , colSums(is.na(En)) < nrow(En)]
-```
-
-
+https://libguides.library.kent.edu/SPSS/Multiple-Response-Sets
+https://www.theanalysisfactor.com/r-tutorial-counting-values/
