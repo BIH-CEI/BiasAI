@@ -1,7 +1,7 @@
 ---
 title: "Data Cleaning for Analysis"
 author: "Vorisek_CN"
-date: "30 12 2021"
+date: "17 01 2022"
 output:
   html_document: default
   pdf_document: default
@@ -12,12 +12,16 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Prepare Data Cleaning
 *Load relevant libraries*
 ```{r}
 library(readxl)
+library(tidyverse)
+library(writexl)
+library(knitr)
 ```
 
-## Bar themes
+*Bar themes*
 ```{r}
 # define theme and colors for barplots
 bar_theme <-   theme(rect = element_blank(),
@@ -33,7 +37,7 @@ merged <- read_excel("merged.xlsx")
 View(merged)
 ```
 
-### Entire Data
+**Entire Data**
 ```{r}
 nrow(merged)
 ncol(merged)
@@ -41,26 +45,13 @@ ncol(merged)
 
 
 # Delete Incomplete Datasets of AI Developers
-## questionnaire 1 complete
+## Questionnaire 1 completed
 
 ```{r}
 complete1 <- merged[merged$fragebogen_fairness_und_ki_complete == 2, ]
 nrow(complete1)
 ```
-```{r}
-AIcomplete2 <- complete1[complete1$ki_entwicklung == 1 | complete1$ki_entwicklung == 2 | complete1$ki_entwicklung == 3, ]
-nrow(AIcomplete2)
-```
-```{r}
-complete2 <- AIcomplete2[AIcomplete2$fragebogen_fairness_und_ki_2_complete == 2, ]
-nrow(complete2)
-```
-## response rate
-```{r}
-199/334*100
-```
-### KI Entwickler complete sheet 1?
-1-3
+## Who completed sheet 1?
 ```{r}
 is.factor(complete1$ki_entwicklung)
 ```
@@ -92,73 +83,361 @@ ggplot(developer) + geom_col(aes(reorder(ki_entwicklung, N, sum), N),
   bar_theme
 ```
 
-## KI Entwickler complete all sheets?
+
+## Data of AI Developers only
 ```{r}
-complete2$ki_entwicklung = as.factor(complete2$ki_entwicklung)
+AIcomplete1 <- complete1[complete1$ki_entwicklung == 1 | complete1$ki_entwicklung == 2 | complete1$ki_entwicklung == 3, ]
+nrow(AIcomplete1)
+```
+## Questionnaire 2 completed
+```{r}
+AIcomplete2 <- AIcomplete1[AIcomplete1$fragebogen_fairness_und_ki_2_complete == 2, ]
+nrow(AIcomplete2)
+```
+## response rate
+```{r}
+199/334*100
 ```
 
+# Identify additional Incomplete IDs
+*"Show only fields" are not included to identify missing data, evaluation in a second step*
+
+**Demographics**
+
+*Prepare Data*
 ```{r}
-developer <- complete2 %>% 
-  group_by(ki_entwicklung) %>% 
-  summarize(N = n()) %>% 
-  mutate(Percent = N / sum(N) * 100,
-         Percent = round(Percent, 1)) %>% 
-  arrange(desc(N))
-
-#Rename Variables
-developer$ki_entwicklung <- factor(developer$ki_entwicklung,levels = c(1,2,3,4,5), labels = c("Yes","No, but I have worked on AI-projects in the past", "No, but I am planning on it", "No, never", "Not specified"))
-
-knitr::kable(developer)
+AIcomplete2$arbeitsland = as.factor(AIcomplete2$arbeitsland)
+AIcomplete2$geschlecht = as.factor(AIcomplete2$geschlecht)
+AIcomplete2$sektor = as.factor(AIcomplete2$sektor)
+AIcomplete2$quelle = as.factor(AIcomplete2$quelle)
+AIcomplete2$alter = as.numeric(AIcomplete2$alter)
 ```
 
+
+## How did this questionnaire reach you?
 ```{r}
-ggplot(developer) + geom_col(aes(reorder(ki_entwicklung, N, sum), N),
-                              fill = bar_color,
-                              width = bar_width) +
-  labs(x = "", y = "Sind Sie derzeit an einer KI-Entwicklung beteiligt?") +
-  scale_y_continuous(breaks = seq(0,200,50)) +
-  coord_flip() +
-  bar_theme
+nrow(AIcomplete2)
+AIcomplete2 <- AIcomplete2 %>% drop_na(quelle)
+nrow(AIcomplete2)
 ```
 
-## Identify additional Incomplete IDs
+## Which country do you work in?
+```{r}
+nrow(AIcomplete2)
+AIcomplete2 <- AIcomplete2 %>% drop_na(arbeitsland)
+nrow(AIcomplete2)
+```
+
+## What is your gender?
+```{r}
+nrow(AIcomplete2)
+AIcomplete2 <- AIcomplete2 %>% drop_na(geschlecht)
+nrow(AIcomplete2)
+```
+
+## what is your age?
+```{r}
+nrow(AIcomplete2)
+AIcomplete2 <- AIcomplete2 %>% drop_na(alter)
+nrow(AIcomplete2)
+```
+
+## In which area do you work in?
+```{r}
+nrow(AIcomplete2)
+AIcomplete2 <- AIcomplete2 %>% drop_na(sektor)
+nrow(AIcomplete2)
+```
+
+
+## At what stage are you or have you been developing AI-projects?
+```{r}
+which(colnames(AIcomplete2) == "ki_entwicklungsphase___1")
+which(colnames(AIcomplete2) == "ki_entwicklungsphase___8")
+```
+*create dataset*
+```{r}
+data_ID<-AIcomplete2 %>% select(1, 19:26)
+view(data_ID)
+ncol(data_ID)
+```
+**identify incomplete IDs**
+```{r}
+data_ID <- data_ID %>%
+    mutate(nonresp = select(., 2:9) %>% rowSums(na.rm = TRUE))
+incomplete <- data_ID[data_ID$nonresp == 0, ]
+incomplete$id
+```
+
+*drop non resp*
+```{r}
+nrow(AIcomplete2)
+AIcomplete2 <-AIcomplete2[!(AIcomplete2$id==136 | AIcomplete2$id==439 | AIcomplete2$id==625),]
+nrow(AIcomplete2)
+rm(data_ID)
+rm(incomplete)
+```
+
+
+## In which medical specialty are you developing AI solutions?
+```{r}
+which(colnames(AIcomplete2) == "med_fachbereich___1")
+which(colnames(AIcomplete2) == "med_fachbereich___37")
+```
+*create dataset*
+```{r}
+data_ID<-AIcomplete2 %>% select(1, 28:64)
+view(data_ID)
+ncol(data_ID)
+```
+*identify incomplete IDs*
+```{r}
+data_ID <- data_ID %>%
+    mutate(nonresp = select(., 2:38) %>% rowSums(na.rm = TRUE))
+incomplete <- data_ID[data_ID$nonresp == 0, ]
+incomplete$id
+```
+*drop non resp*
+```{r}
+nrow(AIcomplete2)
+AIcomplete2 <- AIcomplete2[!(AIcomplete2$id==36 | AIcomplete2$id==143 | AIcomplete2$id==278 | AIcomplete2$id==567 | AIcomplete2$id==609),]
+nrow(AIcomplete2)
+rm(data_ID)
+rm(incomplete)
+```
 
 
 
 
+## In which of the following areas of AI are you developing?
+```{r}
+which(colnames(AIcomplete2) == "ki_art___1")
+which(colnames(AIcomplete2) == "ki_art___4")
+```
+*create dataset*
+```{r}
+data_ID<-AIcomplete2 %>% select(1,  66:69)
+view(data_ID)
+ncol(data_ID)
+```
+*identify incomplete IDs*
+```{r}
+data_ID <- data_ID %>%
+    mutate(nonresp = select(., 2:5) %>% rowSums(na.rm = TRUE))
+incomplete <- data_ID[data_ID$nonresp == 0, ]
+incomplete$id
+```
+*drop non resp*
+```{r}
+nrow(AIcomplete2)
+AIcomplete2 <- AIcomplete2[!(AIcomplete2$id==316  | AIcomplete2$id==366),]
+nrow(AIcomplete2)
+rm(data_ID)
+rm(data_ID)
+```
+
+## In which of the following areas of AI are you developing?
+
+```{r}
+which(colnames(AIcomplete2) == "ki_bereich___1")
+which(colnames(AIcomplete2) == "ki_bereich___7")
+```
+*create dataset*
+```{r}
+data_ID <-AIcomplete2 %>% select(1,  81:87)
+view(data_ID)
+ncol(data_ID)
+```
+*identify incomplete IDs*
+```{r}
+data_ID <- data_ID %>%
+    mutate(nonresp = select(., 2:8) %>% rowSums(na.rm = TRUE))
+incomplete <- data_ID[data_ID$nonresp == 0, ]
+incomplete$id
+```
+*drop non resp*
+```{r}
+nrow(AIcomplete2)
+AIcomplete2 <- AIcomplete2[!(AIcomplete2$id==231  | AIcomplete2$id==351  | AIcomplete2$id==357 | AIcomplete2$id==560),]
+nrow(AIcomplete2)
+rm(data_ID)
+rm(incomplete)
+```
 
 
+*** 
+**Questions of Interest**
+## How familiar are you with biases in AI?
+```{r}
+nrow(AIcomplete2)
+AIcomplete2 <- AIcomplete2 %>% drop_na(bias_ki)
+nrow(AIcomplete2)
+```
+
+## Where do you think biases in AI can occur?
+
+```{r}
+which(colnames(AIcomplete2) == "bias_feld___1")
+which(colnames(AIcomplete2) == "bias_feld___6")
+```
+*create dataset*
+```{r}
+data_ID <-AIcomplete2 %>% select(1,  90:95)
+view(data_ID)
+ncol(data_ID)
+```
+*identify incomplete IDs*
+```{r}
+data_ID <- data_ID %>%
+    mutate(nonresp = select(., 2:7) %>% rowSums(na.rm = TRUE))
+incomplete <- data_ID[data_ID$nonresp == 0, ]
+incomplete$id
+```
+*drop non resp*
+```{r}
+nrow(AIcomplete2)
+AIcomplete2 <- AIcomplete2[!(AIcomplete2$id==247   | AIcomplete2$id==257   | AIcomplete2$id==269  | AIcomplete2$id==290  | AIcomplete2$id==382    | AIcomplete2$id==422   | AIcomplete2$id==624),]
+nrow(AIcomplete2)
+rm(data_ID)
+rm(incomplete)
+```
 
 
-
-
-
-
-
-
-
-
-
-*select columns*
+## What data do you use to train AI algorithms?
 ```{r}
 which(colnames(AIcomplete2) == "ki_trainingsdaten___1")
 which(colnames(AIcomplete2) == "ki_trainingsdaten___4")
 ```
 *create dataset*
 ```{r}
-train2<-AIcomplete2 %>% select(1, 97:100)
-view(train2)
-ncol(train2)
+data_ID <-AIcomplete2 %>% select(1, 97:100)
+view(data_ID)
+ncol(data_ID)
 ```
-
-**identify participants which did not answer this question but were marked as complete!!!**
+*identify incomplete IDs*
 ```{r}
-train2 <- train2 %>%
+data_ID <- data_ID %>%
     mutate(nonresp = select(., 2:5) %>% rowSums(na.rm = TRUE))
-incomplete7 <- train2[train2$nonresp == 0, ]
-incomplete7$id
+incomplete <- data_ID[data_ID$nonresp == 0, ]
+incomplete$id
+```
+*drop non resp*
+```{r}
+nrow(AIcomplete2)
+AIcomplete2 <- AIcomplete2[!(AIcomplete2$id==214    | AIcomplete2$id==330    | AIcomplete2$id==587),]
+nrow(AIcomplete2)
+rm(data_ID)
+rm(incomplete)
 ```
 
+
+## What is the origin of your data?
+```{r}
+which(colnames(AIcomplete2) == "ki_daten_quelle___1")
+which(colnames(AIcomplete2) == "ki_daten_quelle___6")
+```
+*create dataset*
+```{r}
+data_ID <-AIcomplete2 %>% select(1, 101:106)
+view(data_ID)
+ncol(data_ID)
+```
+*identify incomplete IDs*
+```{r}
+data_ID <- data_ID %>%
+    mutate(nonresp = select(., 2:7) %>% rowSums(na.rm = TRUE))
+incomplete <- data_ID[data_ID$nonresp == 0, ]
+incomplete$id
+```
+*drop non resp*
+```{r}
+nrow(AIcomplete2)
+AIcomplete2 <- AIcomplete2[!(AIcomplete2$id==152),]
+nrow(AIcomplete2)
+rm(data_ID)
+rm(incomplete)
+```
+
+
+
+## Do you work with national or international data?
+```{r}
+nrow(AIcomplete2)
+AIcomplete2 <- AIcomplete2 %>% drop_na(nat_internat_daten)
+nrow(AIcomplete2)
+```
+
+## Do you think that using standardized data (internationalsemantic and syntactic standards such as HL7 FHIR, SNOMEDCT) when training AI algorithms can prevent bias?
+```{r}
+nrow(AIcomplete2)
+AIcomplete2 <- AIcomplete2 %>% drop_na(standard_daten)
+nrow(AIcomplete2)
+```
+
+
+## Do you know any of the following preventive measures to avoidbias in AI applications?
+```{r}
+which(colnames(AIcomplete2) == "massnahmen_bias___1")
+which(colnames(AIcomplete2) == "massnahmen_bias___6")
+```
+*create dataset*
+```{r}
+data_ID <-AIcomplete2 %>% select(1, 110:115)
+view(data_ID)
+ncol(data_ID)
+```
+*identify incomplete IDs*
+```{r}
+data_ID <- data_ID %>%
+    mutate(nonresp = select(., 2:7) %>% rowSums(na.rm = TRUE))
+incomplete <- data_ID[data_ID$nonresp == 0, ]
+incomplete$id
+```
+*drop non resp*
+```{r}
+nrow(AIcomplete2)
+AIcomplete2 <- AIcomplete2[!(AIcomplete2$id==529      | AIcomplete2$id==28),]
+nrow(AIcomplete2)
+rm(data_ID)
+rm(incomplete)
+```
+
+## What sociodemographic data would you collect to prevent biases in AI?
+```{r}
+which(colnames(AIcomplete2) == "soziodem_daten___1")
+which(colnames(AIcomplete2) == "soziodem_daten___7")
+```
+*create dataset*
+```{r}
+data_ID <-AIcomplete2 %>% select(1, 117:123)
+view(data_ID)
+ncol(data_ID)
+```
+*identify incomplete IDs*
+```{r}
+data_ID <- data_ID %>%
+    mutate(nonresp = select(., 2:8) %>% rowSums(na.rm = TRUE))
+incomplete <- data_ID[data_ID$nonresp == 0, ]
+incomplete$id
+```
+*drop non resp*
+```{r}
+rm(data_ID)
+rm(incomplete)
+```
+
+## How would you rate the level of fairness of AI in your AIdevelopment? (Are specifi c groups of people treated /considereddiff erently from others?)
+
+```{r}
+nrow(AIcomplete2)
+AIcomplete2 <- AIcomplete2 %>% drop_na(fairness_ki)
+nrow(AIcomplete2)
+```
+
+# Create File for Analysis
+```{r}
+write_xlsx(AIcomplete2, 'AnalysisFile_Bias_AI.xlsx')
+```
 
 
 
