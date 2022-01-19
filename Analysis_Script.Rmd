@@ -22,6 +22,8 @@ library(arsenal)
 library(data.table)
 library(ggplot2)
 library(dplyr)
+library(ggplot2)
+library(ggpubr)
 ```
 
 *Bar themes*
@@ -68,13 +70,15 @@ knitr::kable(source)
 ```
 
 ```{r}
-ggplot(source) + geom_col(aes(reorder(quelle, N, sum), N),
+source_plot <- ggplot(source) + geom_col(aes(reorder(quelle, N, sum), N),
                               fill = bar_color,
                               width = bar_width) +
   labs(x = "", y = "Number of Participants", title = "How did this questionnaire reach you?") +
   scale_y_continuous(breaks = seq(0,100,10)) +
   coord_flip() +
   bar_theme
+
+source_plot
 ```
 
 
@@ -91,14 +95,17 @@ knitr::kable(country)
 ```
 
 ```{r}
-ggplot(country) + geom_col(aes(reorder(arbeitsland, N, sum), N),
+country_plot <- ggplot(country) + geom_col(aes(reorder(arbeitsland, N, sum), N),
                               fill = bar_color,
                               width = bar_width) +
   labs(x = "", y = "Number of Participants", title = "Which country do you work in?") +
   scale_y_continuous(breaks = seq(0,150,25)) +
   coord_flip() +
   bar_theme
+
+country_plot
 ```
+
 
 
 ## What is your gender?
@@ -116,13 +123,15 @@ knitr::kable(gender)
 ```
 
 ```{r}
-ggplot(gender) + geom_col(aes(reorder(geschlecht, N, sum), N),
+gender_plot <- ggplot(gender) + geom_col(aes(reorder(geschlecht, N, sum), N),
                               fill = bar_color,
                               width = bar_width) +
   labs(x = "", y = "Number of Participants", title = "What is your gender?") +
   scale_y_continuous(breaks = seq(0,200,25)) +
   coord_flip() +
   bar_theme
+
+gender_plot
 ```
 
 
@@ -257,11 +266,73 @@ barplot(areas_analysis[[3]]
 ```
 
 
-
 ## Please specify the type of Machine Learning (ML) you aredeveloping:
+```{r}
+which(colnames(analysis) == "ki_art_ml___1")
+which(colnames(analysis) == "ki_art_ml___6")
+```
+
+```{r}
+ml <-analysis %>% select( 70:75)
+view(ml)
+```
+
+**Multi-response analysis**
+*Pct.of.cases is the percentage of respondents who selected that particular option. You'll notice that these don't add up to 100% because people could choose more than one option.Pct.of.resp. is the percentage of responses (so not like I said in the video respondents, but responses).  These do add up to 100%. *
+```{r}
+ml_analysis <-data.frame(Freq = colSums(ml),
+           Pct.of.Resp = (colSums(ml)/sum(ml))*100,
+           Pct.of.Cases = (colSums(ml)/nrow(ml))*100)
+```
+
+```{r}
+rownames(ml_analysis) <- c("Supervised ML","Semi-supervised ML","Unsupervised ML", "Reinforcement learning", "Other", "Not specified")
+
+knitr::kable(ml_analysis)
+```
+
+```{r}
+barplot(ml_analysis[[3]]
+        ,horiz=TRUE
+        ,names.arg=row.names(ml_analysis)
+        ,las=1
+        ,main="Please specify the type of Machine Learning (ML) you aredeveloping:"
+        ,xlab="percentage of responses")
+```
 
 ## Please specify the type of Deep Learning you are developing:
+```{r}
+which(colnames(analysis) == "ki_art_dl___1")
+which(colnames(analysis) == "ki_art_dl___5")
+```
 
+```{r}
+dl <-analysis %>% select( 76:80)
+view(dl)
+```
+
+**Multi-response analysis**
+*Pct.of.cases is the percentage of respondents who selected that particular option. You'll notice that these don't add up to 100% because people could choose more than one option.Pct.of.resp. is the percentage of responses (so not like I said in the video respondents, but responses).  These do add up to 100%. *
+```{r}
+dl_analysis <-data.frame(Freq = colSums(dl),
+           Pct.of.Resp = (colSums(dl)/sum(dl))*100,
+           Pct.of.Cases = (colSums(dl)/nrow(dl))*100)
+```
+
+```{r}
+rownames(dl_analysis) <- c("Convolutional Networks","Recurrent neural Networks","Autoencoders", "Other", "Not specified")
+
+knitr::kable(dl_analysis)
+```
+
+```{r}
+barplot(dl_analysis[[3]]
+        ,horiz=TRUE
+        ,names.arg=row.names(dl_analysis)
+        ,las=1
+        ,main="Please specify the type of Deep Learning you are developing:"
+        ,xlab="percentage of responses")
+```
 
 ## In which of the following areas of AI are you developing?
 ```{r}
@@ -448,9 +519,207 @@ ggplot(national) + geom_col(aes(reorder(nat_internat_daten, N, sum), N),
 ```
 
 
-## Do you think that using standardized data (internationalsemantic and syntactic standards such as HL7 FHIR, SNOMEDCT) when training AI algorithms can prevent bias?
+## Do you think that using standardized data (internationalsemantic and syntactic standards such as HL7 FHIR, SNOMEDCT) when training AI algorithms can prevent bias? (radio)
+```{r}
+standard <- analysis %>% 
+  group_by(standard_daten) %>% 
+  summarize(N = n()) %>% 
+  mutate(Percent = N / sum(N) * 100,
+         Percent = round(Percent, 1)) %>% 
+  arrange(desc(N))
+
+standard$standard_daten <- factor(standard$standard_daten,levels = c(1,2,3), labels = c("Yes","No","Not specified"))
+
+knitr::kable(standard)
+```
+
+```{r}
+ggplot(standard) + geom_col(aes(reorder(standard_daten, N, sum), N),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "Number of Participants", title = " Do you think that using standardized data when training AI algorithms can prevent bias?") +
+  scale_y_continuous(breaks = seq(0,100,25)) +
+  coord_flip() +
+  bar_theme
+```
+
+## Do you know any of the following preventive measures to avoid bias in AI applications?
+```{r}
+which(colnames(analysis) == "massnahmen_bias___1")
+which(colnames(analysis) == "massnahmen_bias___6")
+```
+
+```{r}
+measures <-analysis %>% select( 110:115)
+view(measures)
+```
+
+**Multi-response analysis**
+*Pct.of.cases is the percentage of respondents who selected that particular option. You'll notice that these don't add up to 100% because people could choose more than one option.Pct.of.resp. is the percentage of responses (so not like I said in the video respondents, but responses).  These do add up to 100%. *
+```{r}
+measures_analysis <-data.frame(Freq = colSums(measures),
+           Pct.of.Resp = (colSums(measures)/sum(measures))*100,
+           Pct.of.Cases = (colSums(measures)/nrow(measures))*100)
+```
+
+```{r}
+rownames(measures_analysis) <- c("Employ ExplainableArtifi cial Intelligence(XAI)","Collectingsociodemographicdata points", "Statistical analysis", "Software evaluatingfairness in AI", "I do not know any ofthem", "Other")
+
+knitr::kable(measures_analysis)
+```
+
+```{r}
+barplot(measures_analysis[[3]]
+        ,horiz=TRUE
+        ,names.arg=row.names(measures_analysis)
+        ,las=1
+        ,main=" Do you know any of the following preventive measures to avoid bias in AI?"
+        ,xlab="percentage of responses")
+```
+
+## What sociodemographic data would you collect to prevent biases in AI?
+```{r}
+which(colnames(analysis) == "soziodem_daten___1")
+which(colnames(analysis) == "soziodem_daten___7")
+```
+
+```{r}
+soziodem <-analysis %>% select( 117:123)
+view(soziodem)
+```
+
+**Multi-response analysis**
+*Pct.of.cases is the percentage of respondents who selected that particular option. You'll notice that these don't add up to 100% because people could choose more than one option.Pct.of.resp. is the percentage of responses (so not like I said in the video respondents, but responses).  These do add up to 100%. *
+```{r}
+soziodem_analysis <-data.frame(Freq = colSums(soziodem),
+           Pct.of.Resp = (colSums(soziodem)/sum(soziodem))*100,
+           Pct.of.Cases = (colSums(soziodem)/nrow(soziodem))*100)
+```
+
+```{r}
+rownames(soziodem_analysis) <- c("Biological gender","Social gender","Age", "Origin", "Other", "None", "Not specified")
+
+knitr::kable(soziodem_analysis)
+```
+
+```{r}
+barplot(soziodem_analysis[[3]]
+        ,horiz=TRUE
+        ,names.arg=row.names(soziodem_analysis)
+        ,las=1
+        ,main=" What sociodemographic data would you collect to prevent biases in AI?"
+        ,xlab="percentage of responses")
+```
+
+## What would you use the collected sociodemographic data for?
+```{r}
+which(colnames(analysis) == "soziodem_verwendung___1")
+which(colnames(analysis) == "soziodem_verwendung___4")
+```
+```{r}
+collect <-analysis %>% select(125:128)
+view(collect)
+nrow(collect)
+```
+**Multi-response analysis**
+*Pct.of.cases is the percentage of respondents who selected that particular option. You'll notice that these don't add up to 100% because people could choose more than one option.Pct.of.resp. is the percentage of responses (so not like I said in the video respondents, but responses).  These do add up to 100%. *
+```{r}
+collect_analysis <-data.frame(Freq = colSums(collect),
+           Pct.of.Resp = (colSums(collect)/sum(collect))*100,
+           Pct.of.Cases = (colSums(collect)/nrow(collect))*100)
+```
+
+```{r}
+rownames(collect_analysis) <- c("AI modelling","Analysis","Data acquisition", "Not specified")
+
+knitr::kable(collect_analysis)
+```
+
+```{r}
+barplot(collect_analysis[[3]]
+        ,horiz=TRUE
+        ,names.arg=row.names(collect_analysis)
+        ,las=1
+        ,main="What would you use the collected sociodemographic data for?"
+        ,xlab="percentage of responses")
+```
 
 
-##Save Code for further Analysis
+
+## How would you rate the level of fairness of AI in your AI development? (radio)
+```{r}
+levelfair <- analysis %>% 
+  group_by(fairness_ki) %>% 
+  summarize(N = n()) %>% 
+  mutate(Percent = N / sum(N) * 100,
+         Percent = round(Percent, 1)) %>% 
+  arrange(desc(N))
+
+levelfair$fairness_ki <- factor(levelfair$fairness_ki,levels = c(1,2,3,4,5,6), labels = c("Not fair at all","Barely fair","Moderately fair", "Fair", "Very fair", "Not specifi ed"))
+
+knitr::kable(levelfair)
+```
+
+```{r}
+ggplot(levelfair) + geom_col(aes(reorder(fairness_ki, N, sum), N),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "Number of Participants", title = "How would you rate the level of fairness of AI in your AI development?") +
+  scale_y_continuous(breaks = seq(0,200,25)) +
+  coord_flip() +
+  bar_theme
+```
+
+## What do you think is preventing fair AI in your use case?
+```{r}
+which(colnames(analysis) == "fairness_ki_block___1")
+which(colnames(analysis) == "fairness_ki_block___7")
+which(colnames(analysis) == "fairness_ki")
+```
+```{r}
+prevent <-analysis %>% select(130:136, 129)
+view(prevent)
+nrow(prevent)
+```
+*Show the fi eld ONLY if:*
+*[fairness_ki_1] = '1' or [fairness_ki_1] = '2' or [fairness_ki_1] ='3' or [fairness_ki_1] = '4' or [fairness_ki_1] = '6'*
+```{r}
+prevent <- prevent[(prevent$fairness_ki==1    | prevent$fairness_ki==2    | prevent$fairness_ki==3 | prevent$fairness_ki==4| prevent$fairness_ki==6),]
+nrow(prevent)
+```
+*drop column*
+```{r}
+prevent <- subset(prevent, select = -c(fairness_ki))
+```
+
+**Multi-response analysis**
+*Pct.of.cases is the percentage of respondents who selected that particular option. You'll notice that these don't add up to 100% because people could choose more than one option.Pct.of.resp. is the percentage of responses (so not like I said in the video respondents, but responses).  These do add up to 100%. *
+```{r}
+prevent_analysis <-data.frame(Freq = colSums(prevent),
+           Pct.of.Resp = (colSums(prevent)/sum(prevent))*100,
+           Pct.of.Cases = (colSums(prevent)/nrow(prevent))*100)
+```
+
+```{r}
+rownames(prevent_analysis) <- c("Lack of resources","Lack of support fromsuperiors/institution","Lack of knowledge", "Lack of fair data", "Lack ofguidelines/recommendationsfor fair AI", "Other", "Not specifi ed")
+
+knitr::kable(prevent_analysis)
+```
+
+```{r}
+barplot(prevent_analysis[[3]]
+        ,horiz=TRUE
+        ,names.arg=row.names(prevent_analysis)
+        ,las=1
+        ,main="What do you think is preventing fair AI in your use case?"
+        ,xlab="percentage of responses")
+```
+
+
+
+
+
+
+
 https://libguides.library.kent.edu/SPSS/Multiple-Response-Sets
 https://www.theanalysisfactor.com/r-tutorial-counting-values/
