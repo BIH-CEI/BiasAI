@@ -3,8 +3,8 @@ title: "Analysis Script - Bias in AI"
 author: "Vorisek_CN"
 date: "30 12 2021"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
   word_document: default
 ---
 
@@ -12,6 +12,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Prepare Analysis
 *Load relevant libraries*
 ```{r}
 library(readxl)
@@ -25,8 +26,7 @@ library(dplyr)
 library(ggplot2)
 library(ggpubr)
 ```
-
-*Bar themes*
+*Bar theme*
 ```{r}
 # define theme and colors for barplots
 bar_theme <-   theme(rect = element_blank(),
@@ -35,16 +35,13 @@ bar_theme <-   theme(rect = element_blank(),
 bar_color <-  "#1b3051"
 bar_width <- 0.6
 ```
-
 *Read in file created in "Data_Preparation.Rmd" and "Data Cleaning.Rmd"*
 ```{r}
 analysis <- read_excel("AnalysisFile_Bias_AI.xlsx")
 View(analysis)
 ```
 
-
 # Demographics
-
 **Prepare Data**
 ```{r}
 analysis$arbeitsland = as.factor(analysis$arbeitsland)
@@ -53,7 +50,6 @@ analysis$sektor = as.factor(analysis$sektor)
 analysis$quelle = as.factor(analysis$quelle)
 analysis$alter = as.numeric(analysis$alter)
 ```
-
 
 ## How did this questionnaire reach you?
 ```{r}
@@ -64,7 +60,7 @@ source <- analysis %>%
          Percent = round(Percent, 1)) %>% 
   arrange(desc(N))
 
-source$quelle <- factor(source$quelle,levels = c(1,2,3,4,5,6), labels = c("Twitter","Linkedin","Email distribution list of my institution", "Personal contact", "Other", "Not specified"))
+source$quelle <- factor(source$quelle,levels = c(1,2,3,4,5,6), labels = c("Twitter","Linkedin","Email distribution\nlist of my institution", "Personal contact", "Other", "Not specified"))
 
 knitr::kable(source)
 ```
@@ -80,6 +76,7 @@ source_plot <- ggplot(source) + geom_col(aes(reorder(quelle, N, sum), N),
 
 source_plot
 ```
+
 
 
 ## Which country do you work in?
@@ -121,7 +118,6 @@ gender$geschlecht <- factor(gender$geschlecht,levels = c(1,2,3,4,5), labels = c(
 
 knitr::kable(gender)
 ```
-
 ```{r}
 gender_plot <- ggplot(gender) + geom_col(aes(reorder(geschlecht, N, sum), N),
                               fill = bar_color,
@@ -135,12 +131,14 @@ gender_plot
 ```
 
 
+
 ## What is your age?
 *check for normality*
 ```{r}
 hist(analysis$alter)
 summary.default(analysis$alter)
 ```
+
 
 
 ## In which area do you work in?
@@ -156,7 +154,6 @@ section$sektor <- factor(section$sektor,levels = c(1,2,3,4,5), labels = c("Scien
 
 knitr::kable(section)
 ```
-
 ```{r}
 ggplot(section) + geom_col(aes(reorder(sektor, N, sum), N),
                               fill = bar_color,
@@ -166,6 +163,7 @@ ggplot(section) + geom_col(aes(reorder(sektor, N, sum), N),
   coord_flip() +
   bar_theme
 ```
+
 
 
 ## At what stage are you or have you been developing AI-projects?
@@ -186,19 +184,28 @@ kiphase_analysis <-data.frame(Freq = colSums(kiphase),
            Pct.of.Resp = (colSums(kiphase)/sum(kiphase))*100,
            Pct.of.Cases = (colSums(kiphase)/nrow(kiphase))*100)
 
-rownames(kiphase_analysis) <- c("Project planning","Data acquisition/ data preprocessing","Data annotation","Identification of AI algorithms", "Training and optimization", "Practical testing of AI algorithms", "Other", "Not specified")
+rownames(kiphase_analysis) <- c("Project planning","Data acquisition/\ndata preprocessing","Data annotation","Identification\nof AI algorithms", "Training and\noptimization", "Practical testing\nof AI algorithms", "Other", "Not specified")
 
 knitr::kable(kiphase_analysis)
 ```
-*You can use the las graphics parameter. However, if you do that, the names will run off the end of the window, so you need to change the margins.*
+*create bar graph*
+*rownames as column*
 ```{r}
-barplot(kiphase_analysis[[3]]
-        ,horiz=TRUE
-        ,names.arg=row.names(kiphase_analysis)
-        ,las=1
-        ,main="At what stage are you or have you been developing AI-projects?"
-        ,xlab="percentage of responses")
+kiphase_analysis1 <- kiphase_analysis                                         
+kiphase_analysis1$row_names <- row.names(kiphase_analysis1)                     
+kiphase_analysis1 
 ```
+*graph*
+```{r}
+ggplot(kiphase_analysis1) + geom_col(aes(reorder(row_names, Pct.of.Cases, sum), Pct.of.Cases),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "Percentage of participants", title = "At what stage are you or have you been\ndeveloping AI-projects??") +
+  scale_y_continuous(breaks = seq(0,200,25)) +
+  coord_flip() +
+  bar_theme
+```
+
 
 
 ## In which medical specialty are you developing AI solutions?
@@ -220,16 +227,24 @@ specialty_analysis <-data.frame(Freq = colSums(specialty),
 
 
 
-knitr::kable(kiphase_analysis)
+knitr::kable(specialty_analysis)
 ```
-*You can use the las graphics parameter. However, if you do that, the names will run off the end of the window, so you need to change the margins.*
+*create bar graph*
+*rownames as column*
 ```{r}
-barplot(specialty_analysis[[3]]
-        ,horiz=TRUE
-        ,names.arg=row.names(specialty_analysis)
-        ,las=1
-        ,main="In which medical specialty are you developing AI solutions?"
-        ,xlab="percentage of responses")
+specialty_analysis1 <- specialty_analysis                                         
+specialty_analysis1$row_names <- row.names(specialty_analysis1)                     
+specialty_analysis1 
+```
+*graph*
+```{r}
+ggplot(specialty_analysis1) + geom_col(aes(reorder(row_names, Pct.of.Cases, sum), Pct.of.Cases),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "Percentage of participants", title = "In which medical specialty are you developing AI solutions?") +
+  scale_y_continuous(breaks = seq(0,200,25)) +
+  coord_flip() +
+  bar_theme
 ```
 
 
@@ -256,14 +271,24 @@ areas_analysis <-data.frame(Freq = colSums(areas),
 rownames(areas_analysis) <- c("Machine Learning","Deep Learning","Other type of AI", "Not specified")
 knitr::kable(areas_analysis)
 ```
+*create bar graph*
+*rownames as column*
 ```{r}
-barplot(areas_analysis[[3]]
-        ,horiz=TRUE
-        ,names.arg=row.names(areas_analysis)
-        ,las=1
-        ,main="In which of the following areas of AI are you developing?"
-        ,xlab="percentage of responses")
+areas_analysis1 <- areas_analysis                                         
+areas_analysis1$row_names <- row.names(areas_analysis1)                     
+areas_analysis1 
 ```
+*graph*
+```{r}
+ggplot(areas_analysis1) + geom_col(aes(reorder(row_names, Pct.of.Cases, sum), Pct.of.Cases),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "Percentage of participants", title = "In which of the following areas of AI are you developing?") +
+  scale_y_continuous(breaks = seq(0,200,25)) +
+  coord_flip() +
+  bar_theme
+```
+
 
 
 ## Please specify the type of Machine Learning (ML) you aredeveloping:
@@ -283,22 +308,30 @@ view(ml)
 ml_analysis <-data.frame(Freq = colSums(ml),
            Pct.of.Resp = (colSums(ml)/sum(ml))*100,
            Pct.of.Cases = (colSums(ml)/nrow(ml))*100)
-```
 
-```{r}
 rownames(ml_analysis) <- c("Supervised ML","Semi-supervised ML","Unsupervised ML", "Reinforcement learning", "Other", "Not specified")
 
 knitr::kable(ml_analysis)
 ```
-
+*create bar graph*
+*rownames as column*
 ```{r}
-barplot(ml_analysis[[3]]
-        ,horiz=TRUE
-        ,names.arg=row.names(ml_analysis)
-        ,las=1
-        ,main="Please specify the type of Machine Learning (ML) you aredeveloping:"
-        ,xlab="percentage of responses")
+ml_analysis1 <- ml_analysis                                         
+ml_analysis1$row_names <- row.names(ml_analysis1)                     
+ml_analysis1 
 ```
+*graph*
+```{r}
+ggplot(ml_analysis1) + geom_col(aes(reorder(row_names, Pct.of.Cases, sum), Pct.of.Cases),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "Percentage of participants", title = "Please specify the type of Machine Learning you aredeveloping") +
+  scale_y_continuous(breaks = seq(0,200,25)) +
+  coord_flip() +
+  bar_theme
+```
+
+
 
 ## Please specify the type of Deep Learning you are developing:
 ```{r}
@@ -310,29 +343,36 @@ which(colnames(analysis) == "ki_art_dl___5")
 dl <-analysis %>% select( 76:80)
 view(dl)
 ```
-
 **Multi-response analysis**
 *Pct.of.cases is the percentage of respondents who selected that particular option. You'll notice that these don't add up to 100% because people could choose more than one option.Pct.of.resp. is the percentage of responses (so not like I said in the video respondents, but responses).  These do add up to 100%. *
 ```{r}
 dl_analysis <-data.frame(Freq = colSums(dl),
            Pct.of.Resp = (colSums(dl)/sum(dl))*100,
            Pct.of.Cases = (colSums(dl)/nrow(dl))*100)
-```
 
-```{r}
 rownames(dl_analysis) <- c("Convolutional Networks","Recurrent neural Networks","Autoencoders", "Other", "Not specified")
 
 knitr::kable(dl_analysis)
 ```
-
+*create bar graph*
+*rownames as column*
 ```{r}
-barplot(dl_analysis[[3]]
-        ,horiz=TRUE
-        ,names.arg=row.names(dl_analysis)
-        ,las=1
-        ,main="Please specify the type of Deep Learning you are developing:"
-        ,xlab="percentage of responses")
+dl_analysis1 <- dl_analysis                                         
+dl_analysis1$row_names <- row.names(dl_analysis1)                     
+dl_analysis1 
 ```
+*graph*
+```{r}
+ggplot(dl_analysis1) + geom_col(aes(reorder(row_names, Pct.of.Cases, sum), Pct.of.Cases),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "Percentage of participants", title = "Please specify the type of Deep Learning you are developing") +
+  scale_y_continuous(breaks = seq(0,200,25)) +
+  coord_flip() +
+  bar_theme
+```
+
+
 
 ## In which of the following areas of AI are you developing?
 ```{r}
@@ -344,7 +384,6 @@ which(colnames(analysis) == "ki_bereich___7")
 areas_2 <-analysis %>% select(81:87)
 view(areas_2)
 ```
-
 **Multi-response analysis**
 *Pct.of.cases is the percentage of respondents who selected that particular option. You'll notice that these don't add up to 100% because people could choose more than one option.Pct.of.resp. is the percentage of responses (so not like I said in the video respondents, but responses).  These do add up to 100%. *
 ```{r}
@@ -357,14 +396,25 @@ areas_2_analysis <-data.frame(Freq = colSums(areas_2),
 rownames(areas_2_analysis) <- c("Natural Language Processing","Clinical Decision Support","Image processing", "Computer vision", "Robotics", "Other", "Not specified")
 knitr::kable(areas_2_analysis)
 ```
+*create bar graph*
+*rownames as column*
 ```{r}
-barplot(areas_2_analysis[[3]]
-        ,horiz=TRUE
-        ,names.arg=row.names(areas_2_analysis)
-        ,las=1
-        ,main="In which of the following areas of AI are you developing?"
-        ,xlab="percentage of responses")
+areas_2_analysis1 <- areas_2_analysis                                         
+areas_2_analysis1$row_names <- row.names(areas_2_analysis1)                     
+areas_2_analysis1 
 ```
+*graph*
+```{r}
+ggplot(areas_2_analysis1) + geom_col(aes(reorder(row_names, Pct.of.Cases, sum), Pct.of.Cases),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "Percentage of participants", title = " In which of the following areas of AI are you developing?") +
+  scale_y_continuous(breaks = seq(0,200,25)) +
+  coord_flip() +
+  bar_theme
+```
+
+
 
 # Main Outcomes
 ## How familiar are you with biases in AI?
@@ -412,16 +462,25 @@ occur_2_analysis <-data.frame(Freq = colSums(occur),
 ```
 
 ```{r}
-rownames(occur_2_analysis) <- c("Methodology of algorithms","Societal factors","Bias due to data validation or data security", "Not specified", "Other", "None of the above")
+rownames(occur_2_analysis) <- c("Methodology of algorithms","Societal factors","Bias due to data\nvalidation or data security", "Not specified", "Other", "None of the above")
 knitr::kable(occur_2_analysis)
 ```
+*create bar graph*
+*rownames as column*
 ```{r}
-barplot(occur_2_analysis[[3]]
-        ,horiz=TRUE
-        ,names.arg=row.names(occur_2_analysis)
-        ,las=1
-        ,main="Where do you think biases in AI can occur?"
-        ,xlab="percentage of responses")
+occur_2_analysis1 <- occur_2_analysis                                         
+occur_2_analysis1$row_names <- row.names(occur_2_analysis1)                     
+occur_2_analysis1 
+```
+*graph*
+```{r}
+ggplot(occur_2_analysis1) + geom_col(aes(reorder(row_names, Pct.of.Cases, sum), Pct.of.Cases),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "Percentage of participants", title = "Where do you think biases in AI can occur?") +
+  scale_y_continuous(breaks = seq(0,200,25)) +
+  coord_flip() +
+  bar_theme
 ```
 
 
@@ -449,14 +508,24 @@ train_2_analysis <-data.frame(Freq = colSums(train),
 rownames(train_2_analysis) <- c("Image data","Audio data","Text data", "Not specified")
 knitr::kable(train_2_analysis)
 ```
+*create bar graph*
+*rownames as column*
 ```{r}
-barplot(train_2_analysis[[3]]
-        ,horiz=TRUE
-        ,names.arg=row.names(train_2_analysis)
-        ,las=1
-        ,main="What data do you use to train AI algorithms?"
-        ,xlab="percentage of responses")
+train_2_analysis1 <- train_2_analysis                                         
+train_2_analysis1$row_names <- row.names(train_2_analysis1)                     
+train_2_analysis1 
 ```
+*graph*
+```{r}
+ggplot(train_2_analysis1) + geom_col(aes(reorder(row_names, Pct.of.Cases, sum), Pct.of.Cases),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "Percentage of respondents", title = "What data do you use to train AI algorithms?") +
+  scale_y_continuous(breaks = seq(0,200,25)) +
+  coord_flip() +
+  bar_theme
+```
+
 
 
 
@@ -480,19 +549,29 @@ origin_2_analysis <-data.frame(Freq = colSums(origin),
 ```
 
 ```{r}
-rownames(origin_2_analysis) <- c("Wearables","Registries","Database from one center", "Multi-center database", "Other", "Not specified")
+rownames(origin_2_analysis) <- c("Wearables","Registries","Database from\none center", "Multi-center\ndatabase", "Other", "Not specified")
 
 knitr::kable(origin_2_analysis)
 ```
-
+*create bar graph*
+*rownames as column*
 ```{r}
-barplot(origin_2_analysis[[3]]
-        ,horiz=TRUE
-        ,names.arg=row.names(origin_2_analysis)
-        ,las=1
-        ,main="What is the origin of your data?"
-        ,xlab="percentage of responses")
+origin_2_analysis1 <- origin_2_analysis                                         
+origin_2_analysis1$row_names <- row.names(origin_2_analysis1)                     
+origin_2_analysis1 
 ```
+*graph*
+```{r}
+ggplot(origin_2_analysis1) + geom_col(aes(reorder(row_names, Pct.of.Cases, sum), Pct.of.Cases),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "Percentage of respondents", title = "What is the origin of your data?") +
+  scale_y_continuous(breaks = seq(0,200,25)) +
+  coord_flip() +
+  bar_theme
+```
+
+
 
 ## Do you work with national or international data?
 ```{r}
@@ -519,6 +598,7 @@ ggplot(national) + geom_col(aes(reorder(nat_internat_daten, N, sum), N),
 ```
 
 
+
 ## Do you think that using standardized data (internationalsemantic and syntactic standards such as HL7 FHIR, SNOMEDCT) when training AI algorithms can prevent bias? (radio)
 ```{r}
 standard <- analysis %>% 
@@ -537,11 +617,13 @@ knitr::kable(standard)
 ggplot(standard) + geom_col(aes(reorder(standard_daten, N, sum), N),
                               fill = bar_color,
                               width = bar_width) +
-  labs(x = "", y = "Number of Participants", title = " Do you think that using standardized data when training AI algorithms can prevent bias?") +
-  scale_y_continuous(breaks = seq(0,100,25)) +
+  labs(x = "", y = "Number of Participants", title = "Do you think that using standardized data\nwhen training AI algorithms can prevent bias?") +
+  scale_y_continuous(breaks = seq(0,200,25)) +
   coord_flip() +
   bar_theme
 ```
+
+
 
 ## Do you know any of the following preventive measures to avoid bias in AI applications?
 ```{r}
@@ -563,26 +645,35 @@ measures_analysis <-data.frame(Freq = colSums(measures),
 ```
 
 ```{r}
-rownames(measures_analysis) <- c("Employ ExplainableArtifi cial Intelligence(XAI)","Collectingsociodemographicdata points", "Statistical analysis", "Software evaluatingfairness in AI", "I do not know any ofthem", "Other")
+rownames(measures_analysis) <- c("Employ Explainable\nArtificial Intelligence (XAI)","Collecting sociodemographic\ndata points", "Statistical analysis", "Software evaluating\nfairness in AI", "I do not know\nany of them", "Other")
 
 knitr::kable(measures_analysis)
 ```
-
+*create bar graph*
+*rownames as column*
 ```{r}
-barplot(measures_analysis[[3]]
-        ,horiz=TRUE
-        ,names.arg=row.names(measures_analysis)
-        ,las=1
-        ,main=" Do you know any of the following preventive measures to avoid bias in AI?"
-        ,xlab="percentage of responses")
+measures_analysis1 <- measures_analysis                                         
+measures_analysis1$row_names <- row.names(measures_analysis1)                     
+measures_analysis1 
 ```
+*graph*
+```{r}
+ggplot(measures_analysis1) + geom_col(aes(reorder(row_names, Pct.of.Cases, sum), Pct.of.Cases),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "Percentage of participants", title = "Do you know any of the following preventive\nmeasures to avoid bias in AI?") +
+  scale_y_continuous(breaks = seq(0,200,25)) +
+  coord_flip() +
+  bar_theme
+```
+
+
 
 ## What sociodemographic data would you collect to prevent biases in AI?
 ```{r}
 which(colnames(analysis) == "soziodem_daten___1")
 which(colnames(analysis) == "soziodem_daten___7")
 ```
-
 ```{r}
 soziodem <-analysis %>% select( 117:123)
 view(soziodem)
@@ -601,15 +692,25 @@ rownames(soziodem_analysis) <- c("Biological gender","Social gender","Age", "Ori
 
 knitr::kable(soziodem_analysis)
 ```
-
+*create bar graph*
+*rownames as column*
 ```{r}
-barplot(soziodem_analysis[[3]]
-        ,horiz=TRUE
-        ,names.arg=row.names(soziodem_analysis)
-        ,las=1
-        ,main=" What sociodemographic data would you collect to prevent biases in AI?"
-        ,xlab="percentage of responses")
+soziodem_analysis1 <- soziodem_analysis                                         
+soziodem_analysis1$row_names <- row.names(soziodem_analysis1)                     
+soziodem_analysis1 
 ```
+*graph*
+```{r}
+ggplot(soziodem_analysis1) + geom_col(aes(reorder(row_names, Pct.of.Cases, sum), Pct.of.Cases),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "Percentage of participants", title = "What sociodemographic data would you collect to prevent biases in AI?") +
+  scale_y_continuous(breaks = seq(0,200,25)) +
+  coord_flip() +
+  bar_theme
+```
+
+
 
 ## What would you use the collected sociodemographic data for?
 ```{r}
@@ -634,14 +735,22 @@ rownames(collect_analysis) <- c("AI modelling","Analysis","Data acquisition", "N
 
 knitr::kable(collect_analysis)
 ```
-
+*create bar graph*
+*rownames as column*
 ```{r}
-barplot(collect_analysis[[3]]
-        ,horiz=TRUE
-        ,names.arg=row.names(collect_analysis)
-        ,las=1
-        ,main="What would you use the collected sociodemographic data for?"
-        ,xlab="percentage of responses")
+collect_analysis1 <- collect_analysis                                         
+collect_analysis1$row_names <- row.names(collect_analysis1)                     
+collect_analysis1 
+```
+*graph*
+```{r}
+ggplot(collect_analysis1) + geom_col(aes(reorder(row_names, Pct.of.Cases, sum), Pct.of.Cases),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "Percentage of Participants", title = "What would you use the collected sociodemographic data for?") +
+  scale_y_continuous(breaks = seq(0,200,25)) +
+  coord_flip() +
+  bar_theme
 ```
 
 
@@ -669,6 +778,8 @@ ggplot(levelfair) + geom_col(aes(reorder(fairness_ki, N, sum), N),
   coord_flip() +
   bar_theme
 ```
+
+
 
 ## What do you think is preventing fair AI in your use case?
 ```{r}
@@ -699,24 +810,29 @@ prevent_analysis <-data.frame(Freq = colSums(prevent),
            Pct.of.Resp = (colSums(prevent)/sum(prevent))*100,
            Pct.of.Cases = (colSums(prevent)/nrow(prevent))*100)
 ```
-
+*Create table*
 ```{r}
-rownames(prevent_analysis) <- c("Lack of resources","Lack of support fromsuperiors/institution","Lack of knowledge", "Lack of fair data", "Lack ofguidelines/recommendationsfor fair AI", "Other", "Not specifi ed")
+rownames(prevent_analysis) <- c("Lack of resources","Lack of support from superiors/institution","Lack of knowledge", "Lack of fair data", "Lack of guidelines/recommendations for fair AI", "Other", "Not specified")
 
 knitr::kable(prevent_analysis)
 ```
-
+*create bar graph*
+*rownames as column*
 ```{r}
-barplot(prevent_analysis[[3]]
-        ,horiz=TRUE
-        ,names.arg=row.names(prevent_analysis)
-        ,las=1
-        ,main="What do you think is preventing fair AI in your use case?"
-        ,xlab="percentage of responses")
+prevent_analysis1 <- prevent_analysis                                         
+prevent_analysis1$row_names <- row.names(prevent_analysis1)                     
+prevent_analysis1 
 ```
 
-
-
+```{r}
+ggplot(prevent_analysis1) + geom_col(aes(reorder(row_names, Pct.of.Cases, sum), Pct.of.Cases),
+                              fill = bar_color,
+                              width = bar_width) +
+  labs(x = "", y = "Percentage of Participants", title = "What is preventing fair AI in your use case?") +
+  scale_y_continuous(breaks = seq(0,200,25)) +
+  coord_flip() +
+  bar_theme
+```
 
 
 
