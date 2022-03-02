@@ -3,13 +3,13 @@ title: "Analysis Script - Bias in AI"
 author: "Vorisek_CN"
 date: "30 12 2021"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
   word_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ## Prepare Analysis
@@ -139,7 +139,27 @@ hist(analysis$alter)
 summary.default(analysis$alter)
 ```
 
+# Age group
+```{r}
+setDT(analysis)   
+```
+### create category age group
+```{r}
+analysis[,agegroup4:= cut(alter,4,include.lowest=TRUE,
+           labels=c("<30","30-40","40-50",">50"))]
+analysis[,table(agegroup4)]
+```
+```{r}
+ageGroup <- analysis %>% 
+  group_by(agegroup4) %>% 
+  summarize(N = n()) %>% 
+  mutate(Percent = N / sum(N) * 100,
+         Percent = round(Percent, 1)) %>% 
+  arrange(desc(N))
 
+
+knitr::kable(ageGroup)
+```
 
 ## In which area do you work in?
 ```{r}
@@ -834,6 +854,80 @@ ggplot(prevent_analysis1) + geom_col(aes(reorder(row_names, Pct.of.Cases, sum), 
   bar_theme
 ```
 
+***
+
+# By Gender and Age
+
+```{r}
+library(arsenal)
+```
+
+```{r}
+genderfair <-analysis %>% select(fairness_ki, geschlecht, alter)
+view(genderfair)
+nrow(genderfair)
+```
+```{r}
+is.factor(genderfair$geschlecht)
+is.factor(genderfair$fairness_ki)
+is.numeric(genderfair$alter)
+```
+```{r}
+genderfair$fairness_ki = as.factor(genderfair$fairness_ki)
+genderfair$fairness_ki <- factor(genderfair$fairness_ki,levels = c(1,2,3,4,5,6), labels = c("Not fair at all","Barely fair","Moderately fair", "Fair", "Very fair", "Not specified"))
+genderfair$geschlecht <- factor(genderfair$geschlecht,levels = c(1,2), labels = c("female", "male"))
+```
+
+
+
+```{r}
+library(data.table)
+```
+### convert to data table
+```{r}
+is.data.table(genderfair) == TRUE
+```
+```{r}
+setDT(genderfair)   
+```
+### create category age group
+```{r}
+genderfair[,agegroup4:= cut(alter,4,include.lowest=TRUE,
+           labels=c("<30","30-40","40-50",">50"))]
+genderfair[,table(agegroup4)]
+```
+
+```{r}
+table(genderfair$fairness_ki, genderfair$agegroup4)
+table2 = table(genderfair$fairness_ki, genderfair$agegroup4)
+chisq.test(table2)
+chisq.test(table2)$expected
+```
+```{r}
+round(prop.table(table2,2),1)
+```
+
+# Only female male
+```{r}
+genderfair <- genderfair %>% drop_na(geschlecht)
+nrow(genderfair)
+```
+## Chi Square
+```{r}
+table(genderfair$fairness_ki, genderfair$geschlecht)
+table1 = table(genderfair$fairness_ki, genderfair$geschlecht)
+chisq.test(table1)
+chisq.test(table1)$expected
+```
+
+###column%
+```{r}
+round(prop.table(table1,2),1)
+```
+
+```{r}
+genderfair <- subset(genderfair, select = -alter)
+```
 
 
 
