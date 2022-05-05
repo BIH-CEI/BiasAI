@@ -3,13 +3,13 @@ title: "Analysis Script - Bias in AI"
 author: "Vorisek_CN"
 date: "30 12 2021"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
   word_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Prepare Analysis
@@ -27,12 +27,15 @@ library(ggplot2)
 library(ggpubr)
 ```
 *Bar theme*
+
+colors: https://www.datanovia.com/en/blog/ggplot-colors-best-tricks-you-will-love/
+
 ```{r}
 # define theme and colors for barplots
 bar_theme <-   theme(rect = element_blank(),
         axis.ticks.y = element_line(color = "grey40"),
         panel.grid.major.x = element_line(color = "grey90"))
-bar_color <-  "grey74"
+bar_color <-  "#C4961A"
 bar_width <- 0.6
 ```
 *Read in file created in "Data_Preparation.Rmd" and "Data Cleaning.Rmd"*
@@ -50,7 +53,19 @@ analysis$sektor = as.factor(analysis$sektor)
 analysis$quelle = as.factor(analysis$quelle)
 analysis$alter = as.numeric(analysis$alter)
 ```
+# Age group
+```{r}
+setDT(analysis)   
+```
+### create category age group
+```{r}
+analysis[,agegroup4:= cut(alter,4,include.lowest=TRUE,
+           labels=c("<30","30-40","40-50",">50"))]
+analysis[,table(agegroup4)]
+```
 
+
+***
 ## How did this questionnaire reach you?
 ```{r}
 source <- analysis %>% 
@@ -138,17 +153,7 @@ gender_plot
 hist(analysis$alter)
 summary.default(analysis$alter)
 ```
-
-# Age group
-```{r}
-setDT(analysis)   
-```
-### create category age group
-```{r}
-analysis[,agegroup4:= cut(alter,4,include.lowest=TRUE,
-           labels=c("<30","30-40","40-50",">50"))]
-analysis[,table(agegroup4)]
-```
+## Age Group
 ```{r}
 ageGroup <- analysis %>% 
   group_by(agegroup4) %>% 
@@ -159,6 +164,23 @@ ageGroup <- analysis %>%
 
 
 knitr::kable(ageGroup)
+```
+
+group by median 
+```{r}
+analysis$agegroup2 <- as.factor(ifelse(analysis$alter <30, 1, 0))
+```
+
+```{r}
+ageGroup_2 <- analysis %>% 
+  group_by(agegroup2) %>% 
+  summarize(N = n()) %>% 
+  mutate(Percent = N / sum(N) * 100,
+         Percent = round(Percent, 1)) %>% 
+  arrange(desc(N))
+
+
+knitr::kable(ageGroup_2)
 ```
 
 ## In which area do you work in?
@@ -862,14 +884,18 @@ ggplot(prevent_analysis1) + geom_col(aes(reorder(row_names, Pct.of.Cases, sum), 
 library(arsenal)
 ```
 
+## create dataset for subanalysis
 ```{r}
-genderfair <-analysis %>% select(fairness_ki, geschlecht, alter)
+genderfair <-analysis %>% select(fairness_ki, geschlecht, alter, sektor, agegroup2, agegroup4)
 view(genderfair)
 nrow(genderfair)
 ```
 ```{r}
 is.factor(genderfair$geschlecht)
 is.factor(genderfair$fairness_ki)
+is.factor(genderfair$sektor)
+is.factor(genderfair$agegroup2)
+is.factor(genderfair$agegroup4)
 is.numeric(genderfair$alter)
 ```
 ```{r}
@@ -879,7 +905,6 @@ genderfair$geschlecht <- factor(genderfair$geschlecht,levels = c(1,2), labels = 
 ```
 
 
-
 ```{r}
 library(data.table)
 ```
@@ -887,16 +912,13 @@ library(data.table)
 ```{r}
 is.data.table(genderfair) == TRUE
 ```
+
+# Write File for Analysis
 ```{r}
-setDT(genderfair)   
-```
-### create category age group
-```{r}
-genderfair[,agegroup4:= cut(alter,4,include.lowest=TRUE,
-           labels=c("<30","30-40","40-50",">50"))]
-genderfair[,table(agegroup4)]
+write_xlsx(genderfair, 'genderfair.xlsx')
 ```
 
+## Age Group 4
 ```{r}
 table(genderfair$fairness_ki, genderfair$agegroup4)
 table2 = table(genderfair$fairness_ki, genderfair$agegroup4)
@@ -904,10 +926,21 @@ chisq.test(table2)
 chisq.test(table2)$expected
 ```
 ```{r}
-round(prop.table(table2,2),1)
+round(prop.table(table2,2),2)
+```
+Age Group 2
+```{r}
+table(genderfair$fairness_ki, genderfair$agegroup2)
+table2 = table(genderfair$fairness_ki, genderfair$agegroup2)
+chisq.test(table2)
+chisq.test(table2)$expected
+```
+```{r}
+round(prop.table(table2,2),2)
 ```
 
-# Only female male
+
+## gender
 ```{r}
 genderfair <- genderfair %>% drop_na(geschlecht)
 nrow(genderfair)
@@ -920,16 +953,33 @@ chisq.test(table1)
 chisq.test(table1)$expected
 ```
 
+
 ###column%
 ```{r}
-round(prop.table(table1,2),1)
+round(prop.table(table1,2),2)
+```
+
+
+## Sektor
+genderfair$sektor <- factor(genderfair$sektor,levels = c(1,2,3,4,5), labels = c("Science","Clinical Work","Industry", "Other", "Not specified"))
+
+```{r}
+genderfair_2 <- subset(genderfair, genderfair$sektor != 4 & genderfair$sektor !=  5)
 ```
 
 ```{r}
-genderfair <- subset(genderfair, select = -alter)
+genderfair_2$sektor <- factor(genderfair_2$sektor,levels = c(1,2,3), labels = c("Science","Clinical Work","Industry"))
+```
+
+```{r}
+table(genderfair_2$fairness_ki, genderfair_2$sektor)
+table1 = table(genderfair_2$fairness_ki, genderfair_2$sektor)
+chisq.test(table1)
+chisq.test(table1)$expected
 ```
 
 
-
-https://libguides.library.kent.edu/SPSS/Multiple-Response-Sets
-https://www.theanalysisfactor.com/r-tutorial-counting-values/
+###column%
+```{r}
+round(prop.table(table1,2),2)
+```
