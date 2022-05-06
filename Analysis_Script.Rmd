@@ -983,3 +983,8 @@ chisq.test(table1)$expected
 ```{r}
 round(prop.table(table1,2),2)
 ```
+
+
+https://jakec007.github.io/2021-06-23-R-likert/
+http://reganmian.net/blog/2013/10/02/likert-graphs-in-r-embedding-metadata-for-easier-plotting/
+https://github.com/jbryer/likert/blob/master/R/likert-package.R
