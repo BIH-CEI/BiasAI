@@ -878,7 +878,7 @@ ggplot(prevent_analysis1) + geom_col(aes(reorder(row_names, Pct.of.Cases, sum), 
 
 ***
 
-# By Gender and Age
+# Subanalysis
 
 ```{r}
 library(arsenal)
@@ -886,22 +886,22 @@ library(arsenal)
 
 ## create dataset for subanalysis
 ```{r}
-genderfair <-analysis %>% select(fairness_ki, geschlecht, alter, sektor, agegroup2, agegroup4)
-view(genderfair)
-nrow(genderfair)
+subanalysis <-analysis %>% select(fairness_ki, geschlecht, alter, sektor, agegroup2, agegroup4)
+view(subanalysis)
+nrow(subanalysis)
 ```
 ```{r}
-is.factor(genderfair$geschlecht)
-is.factor(genderfair$fairness_ki)
-is.factor(genderfair$sektor)
-is.factor(genderfair$agegroup2)
-is.factor(genderfair$agegroup4)
-is.numeric(genderfair$alter)
+is.factor(subanalysis$geschlecht)
+is.factor(subanalysis$fairness_ki)
+is.factor(subanalysis$sektor)
+is.factor(subanalysis$agegroup2)
+is.factor(subanalysis$agegroup4)
+is.numeric(subanalysis$alter)
 ```
 ```{r}
-genderfair$fairness_ki = as.factor(genderfair$fairness_ki)
-genderfair$fairness_ki <- factor(genderfair$fairness_ki,levels = c(1,2,3,4,5,6), labels = c("Not fair at all","Barely fair","Moderately fair", "Fair", "Very fair", "Not specified"))
-genderfair$geschlecht <- factor(genderfair$geschlecht,levels = c(1,2), labels = c("female", "male"))
+subanalysis$fairness_ki = as.factor(subanalysis$fairness_ki)
+subanalysis$fairness_ki <- factor(subanalysis$fairness_ki,levels = c(1,2,3,4,5,6), labels = c("Not fair at all","Barely fair","Moderately fair", "Fair", "Very fair", "Not specified"))
+subanalysis$geschlecht <- factor(subanalysis$geschlecht,levels = c(1,2,3,4), labels = c("Female","Male","Diverse", "Undefined"))
 ```
 
 
@@ -910,18 +910,18 @@ library(data.table)
 ```
 ### convert to data table
 ```{r}
-is.data.table(genderfair) == TRUE
+is.data.table(subanalysis) == TRUE
 ```
 
 # Write File for Analysis
 ```{r}
-write_xlsx(genderfair, 'genderfair.xlsx')
+write_xlsx(subanalysis, 'subanalysis.xlsx')
 ```
 
 ## Age Group 4
 ```{r}
-table(genderfair$fairness_ki, genderfair$agegroup4)
-table2 = table(genderfair$fairness_ki, genderfair$agegroup4)
+table(subanalysis$fairness_ki, subanalysis$agegroup4)
+table2 = table(subanalysis$fairness_ki, subanalysis$agegroup4)
 chisq.test(table2)
 chisq.test(table2)$expected
 ```
@@ -930,8 +930,8 @@ round(prop.table(table2,2),2)
 ```
 Age Group 2
 ```{r}
-table(genderfair$fairness_ki, genderfair$agegroup2)
-table2 = table(genderfair$fairness_ki, genderfair$agegroup2)
+table(subanalysis$fairness_ki, subanalysis$agegroup2)
+table2 = table(subanalysis$fairness_ki, subanalysis$agegroup2)
 chisq.test(table2)
 chisq.test(table2)$expected
 ```
@@ -942,16 +942,20 @@ round(prop.table(table2,2),2)
 
 ## gender
 ```{r}
-genderfair <- genderfair %>% drop_na(geschlecht)
-nrow(genderfair)
+subanalysis <- subanalysis %>% drop_na(geschlecht)
+nrow(subanalysis)
 ```
 ## Chi Square
 ```{r}
-table(genderfair$fairness_ki, genderfair$geschlecht)
-table1 = table(genderfair$fairness_ki, genderfair$geschlecht)
+table(subanalysis$fairness_ki, subanalysis$geschlecht)
+table1 = table(subanalysis$fairness_ki, subanalysis$geschlecht)
 chisq.test(table1)
 chisq.test(table1)$expected
 ```
+```{r}
+fisher.test(table1,conf.int = T,conf.level = 0.99)
+```
+
 
 
 ###column%
@@ -961,19 +965,19 @@ round(prop.table(table1,2),2)
 
 
 ## Sektor
-genderfair$sektor <- factor(genderfair$sektor,levels = c(1,2,3,4,5), labels = c("Science","Clinical Work","Industry", "Other", "Not specified"))
+subanalysis$sektor <- factor(subanalysis$sektor,levels = c(1,2,3,4,5), labels = c("Science","Clinical Work","Industry", "Other", "Not specified"))
 
 ```{r}
-genderfair_2 <- subset(genderfair, genderfair$sektor != 4 & genderfair$sektor !=  5)
+subanalysis_2 <- subset(subanalysis, subanalysis$sektor != 4 & subanalysis$sektor !=  5)
 ```
 
 ```{r}
-genderfair_2$sektor <- factor(genderfair_2$sektor,levels = c(1,2,3), labels = c("Science","Clinical Work","Industry"))
+subanalysis_2$sektor <- factor(subanalysis_2$sektor,levels = c(1,2,3), labels = c("Science","Clinical Work","Industry"))
 ```
 
 ```{r}
-table(genderfair_2$fairness_ki, genderfair_2$sektor)
-table1 = table(genderfair_2$fairness_ki, genderfair_2$sektor)
+table(subanalysis_2$fairness_ki, subanalysis_2$sektor)
+table1 = table(subanalysis_2$fairness_ki, subanalysis_2$sektor)
 chisq.test(table1)
 chisq.test(table1)$expected
 ```
